@@ -1,172 +1,254 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Star, ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 
-interface Testimonial {
-  id: number;
-  name: string;
-  role: string;
-  company: string;
-  content: string;
-  rating: number;
-  avatar: string;
-  tag: string;
-}
-
-const TestimonialsSection: React.FC = () => {
+const TestimonialsSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [autoPlay, setAutoPlay] = useState(true);
 
-  const testimonials: Testimonial[] = [
+  const testimonials = [
     {
       id: 1,
-      name: 'Emily Thompson',
-      role: 'Graduate Student',
-      company: 'MIT',
-      content: 'Writing my thesis became so much easier with Editore. The plagiarism checker gave me confidence, and the citation generator saved me hours of formatting. I couldn\'t have finished without it.',
+      name: 'Sarah Chen',
+      role: 'Content Marketing Manager',
+      company: 'TechFlow Inc.',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=face',
-      tag: 'Saved hours of work'
+      text: 'Editore has revolutionized our content creation process. The AI suggestions are incredibly accurate, and our team\'s productivity has increased by 40%. It\'s like having a professional editor available 24/7.',
+      highlight: 'Increased productivity by 40%'
     },
     {
       id: 2,
-      name: 'Marcus Rodriguez',
-      role: 'Content Manager',
-      company: 'TechCorp',
-      content: 'Our team\'s productivity has increased by 40% since implementing Editore. The AI humanizer helps us maintain our brand voice while the grammar checker ensures professional quality across all content.',
+      name: 'Dr. Michael Rodriguez',
+      role: 'Professor of English Literature',
+      company: 'Stanford University',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=face',
-      tag: '40% productivity boost'
+      text: 'As an educator, I\'ve seen how Editore helps students improve their writing skills dramatically. The grammar checker and style suggestions are pedagogically sound and help students learn, not just correct mistakes.',
+      highlight: 'Pedagogically sound approach'
     },
     {
       id: 3,
-      name: 'Dr. Sarah Chen',
-      role: 'English Professor',
-      company: 'Stanford University',
-      content: 'Editore has revolutionized how I provide feedback to my students. The detailed grammar analysis and writing suggestions help them improve faster than traditional methods.',
+      name: 'Emily Thompson',
+      role: 'Graduate Student',
+      company: 'MIT',
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/1181686/pexels-photo-1181686.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=face',
-      tag: 'Teaching excellence'
+      text: 'Writing my thesis became so much easier with Editore. The plagiarism checker gave me confidence, and the citation generator saved me hours of formatting. I couldn\'t have finished without it.',
+      highlight: 'Saved hours of work'
     },
     {
       id: 4,
       name: 'James Wilson',
       role: 'Freelance Writer',
       company: 'Independent',
-      content: 'As a freelancer, quality and speed are everything. Editore\'s paraphraser and summarizer tools help me deliver exceptional content to clients while meeting tight deadlines.',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
       rating: 5,
-      avatar: 'https://images.pexels.com/photos/1043471/pexels-photo-1043471.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&fit=crop&crop=face',
-      tag: 'Quality & speed'
+      text: 'The AI humanizer feature is a game-changer. It helps me refine AI-generated drafts to match my unique voice perfectly. My clients love the consistent quality, and I can take on more projects.',
+      highlight: 'Perfect voice matching'
+    },
+    {
+      id: 5,
+      name: 'Lisa Park',
+      role: 'Marketing Director',
+      company: 'GrowthLab',
+      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=face',
+      rating: 5,
+      text: 'Our entire marketing team uses Editore for campaign copy, blog posts, and social media content. The consistency in brand voice across all channels has improved significantly.',
+      highlight: 'Consistent brand voice'
     }
   ];
 
   useEffect(() => {
+    if (!autoPlay) return;
+    
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % testimonials.length);
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [testimonials.length]);
+  }, [autoPlay, testimonials.length]);
 
-  const handlePrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+  const nextTestimonial = () => {
+    setAutoPlay(false);
+    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+    setTimeout(() => setAutoPlay(true), 5000);
   };
 
-  const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % testimonials.length);
+  const prevTestimonial = () => {
+    setAutoPlay(false);
+    setCurrentIndex((prev) => (prev - 1 + testimonials.length) % testimonials.length);
+    setTimeout(() => setAutoPlay(true), 5000);
+  };
+
+  const renderStars = (rating) => {
+    return Array.from({ length: 5 }).map((_, index) => (
+      <motion.div
+        key={index}
+        initial={{ scale: 0, rotate: -180 }}
+        animate={{ scale: 1, rotate: 0 }}
+        transition={{ 
+          delay: index * 0.1,
+          type: 'spring',
+          stiffness: 200,
+          damping: 10
+        }}
+      >
+        <Star
+          className={`w-5 h-5 ${
+            index < rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'
+          }`}
+        />
+      </motion.div>
+    ));
   };
 
   return (
-    <section className="py-20 bg-gradient-to-br from-blue-50 to-teal-50">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+    <section className="py-20 lg:py-32 bg-primary relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 lg:px-24">
+        {/* Section Header */}
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-4xl lg:text-6xl font-bold text-text-primary mb-6 tracking-tight">
             Loved by Writers Worldwide
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
             Join thousands of satisfied users who have transformed their writing with Editore's AI-powered tools.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="relative">
-          {/* Navigation buttons */}
-          <button
-            onClick={handlePrevious}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:shadow-xl transition-all duration-300 hover:scale-110"
+        {/* Testimonials Carousel */}
+        <div className="relative max-w-4xl mx-auto">
+          {/* Navigation Arrows */}
+          <motion.button
+            onClick={prevTestimonial}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-accent-blue to-accent-green rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300 -ml-6"
+            whileHover={{ scale: 1.1, boxShadow: '0 0 20px rgba(58, 134, 255, 0.5)' }}
+            whileTap={{ scale: 0.9 }}
           >
-            <ChevronLeft className="w-6 h-6 text-gray-600" />
-          </button>
+            <ChevronLeft className="w-6 h-6" />
+          </motion.button>
 
-          <button
-            onClick={handleNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-white shadow-lg rounded-full flex items-center justify-center hover:shadow-xl transition-all duration-300 hover:scale-110"
+          <motion.button
+            onClick={nextTestimonial}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-accent-blue to-accent-green rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300 -mr-6"
+            whileHover={{ scale: 1.1, boxShadow: '0 0 20px rgba(58, 134, 255, 0.5)' }}
+            whileTap={{ scale: 0.9 }}
           >
-            <ChevronRight className="w-6 h-6 text-gray-600" />
-          </button>
+            <ChevronRight className="w-6 h-6" />
+          </motion.button>
 
-          {/* Testimonials carousel */}
-          <div className="overflow-hidden px-16">
-            <div 
-              className="flex transition-transform duration-500 ease-in-out"
-              style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-            >
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="w-full flex-shrink-0">
-                  <div className="bg-white rounded-3xl p-8 shadow-lg hover:shadow-xl transition-shadow duration-300 max-w-4xl mx-auto">
-                    {/* Rating stars */}
-                    <div className="flex justify-center mb-6">
-                      {[...Array(testimonial.rating)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          className="w-6 h-6 text-yellow-400 fill-current animate-bounce" 
-                          style={{ animationDelay: `${i * 0.1}s` }}
-                        />
-                      ))}
-                    </div>
+          {/* Testimonial Cards */}
+          <div className="relative h-96 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                className="absolute inset-0 flex items-center justify-center"
+                initial={{ opacity: 0, x: 300, scale: 0.8 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: -300, scale: 0.8 }}
+                transition={{ 
+                  duration: 0.6,
+                  ease: 'easeInOut'
+                }}
+              >
+                <div className="bg-card-bg rounded-3xl p-8 shadow-card max-w-2xl w-full relative">
+                  {/* Quote Icon */}
+                  <motion.div
+                    className="absolute -top-4 -left-4 w-12 h-12 bg-gradient-to-r from-accent-blue to-accent-green rounded-full flex items-center justify-center"
+                    animate={{
+                      boxShadow: [
+                        '0 0 20px rgba(58, 134, 255, 0.3)',
+                        '0 0 30px rgba(0, 200, 150, 0.4)',
+                        '0 0 20px rgba(58, 134, 255, 0.3)'
+                      ]
+                    }}
+                    transition={{
+                      duration: 3,
+                      repeat: Infinity,
+                      ease: 'easeInOut'
+                    }}
+                  >
+                    <Quote className="w-6 h-6 text-white" />
+                  </motion.div>
 
-                    {/* Tag */}
-                    <div className="text-center mb-6">
-                      <span className="inline-block px-4 py-2 bg-gradient-to-r from-blue-500 to-teal-400 text-white text-sm font-semibold rounded-full">
-                        {testimonial.tag}
-                      </span>
-                    </div>
-
-                    {/* Content */}
-                    <blockquote className="text-xl text-gray-700 text-center leading-relaxed mb-8 italic">
-                      "{testimonial.content}"
-                    </blockquote>
-
-                    {/* Author */}
-                    <div className="flex items-center justify-center">
-                      <img
-                        src={testimonial.avatar}
-                        alt={testimonial.name}
-                        className="w-16 h-16 rounded-full object-cover mr-4 border-4 border-white shadow-lg"
-                      />
-                      <div className="text-left">
-                        <div className="font-semibold text-gray-900 text-lg">
-                          {testimonial.name}
-                        </div>
-                        <div className="text-gray-600">
-                          {testimonial.role} • {testimonial.company}
-                        </div>
-                      </div>
-                    </div>
+                  {/* Star Rating */}
+                  <div className="flex items-center space-x-1 mb-6">
+                    {renderStars(testimonials[currentIndex].rating)}
                   </div>
+
+                  {/* Testimonial Text */}
+                  <motion.blockquote
+                    className="text-lg text-text-primary leading-relaxed mb-6 italic"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3, duration: 0.6 }}
+                  >
+                    "{testimonials[currentIndex].text}"
+                  </motion.blockquote>
+
+                  {/* Highlight Badge */}
+                  <motion.div
+                    className="inline-block bg-gradient-to-r from-accent-blue/10 to-accent-green/10 border border-accent-blue/20 rounded-full px-4 py-2 mb-6"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: 'spring', stiffness: 200 }}
+                  >
+                    <span className="text-accent-blue font-medium text-sm">
+                      {testimonials[currentIndex].highlight}
+                    </span>
+                  </motion.div>
+
+                  {/* Author Info */}
+                  <motion.div
+                    className="flex items-center space-x-4"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.6 }}
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-accent-blue/20">
+                      <img
+                        src={testimonials[currentIndex].avatar}
+                        alt={testimonials[currentIndex].name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-text-primary">
+                        {testimonials[currentIndex].name}
+                      </h4>
+                      <p className="text-text-secondary text-sm">
+                        {testimonials[currentIndex].role} • {testimonials[currentIndex].company}
+                      </p>
+                    </div>
+                  </motion.div>
                 </div>
-              ))}
-            </div>
+              </motion.div>
+            </AnimatePresence>
           </div>
 
-          {/* Dots indicator */}
+          {/* Carousel Indicators */}
           <div className="flex justify-center mt-8 space-x-2">
             {testimonials.map((_, index) => (
-              <button
+              <motion.button
                 key={index}
-                onClick={() => setCurrentIndex(index)}
+                onClick={() => {
+                  setAutoPlay(false);
+                  setCurrentIndex(index);
+                  setTimeout(() => setAutoPlay(true), 5000);
+                }}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
                   index === currentIndex 
-                    ? 'bg-gradient-to-r from-blue-500 to-teal-400 scale-125' 
+                    ? 'bg-accent-blue shadow-lg scale-125' 
                     : 'bg-gray-300 hover:bg-gray-400'
                 }`}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
               />
             ))}
           </div>
