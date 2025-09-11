@@ -1,215 +1,214 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Search, 
-  RefreshCw, 
-  CheckCircle, 
-  FileText, 
-  Shield, 
-  Users, 
-  Quote, 
-  Globe, 
-  Edit,
-  ChevronLeft,
-  ChevronRight
-} from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronLeft, ChevronRight, Search, RefreshCw, CheckCircle, FileText, Shield, Users, Quote, Languages, PenTool } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
-interface Feature {
-  id: string;
-  title: string;
-  description: string;
-  icon: React.ReactNode;
-  animation: string;
-}
-
-const FeaturesSection: React.FC = () => {
+const FeaturesSection = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef(null);
 
-  const features: Feature[] = [
+  const features = [
     {
-      id: 'ai-detector',
+      icon: Search,
       title: 'AI Detector',
-      description: 'Identify AI-generated content with advanced detection algorithms',
-      icon: <Search className="w-12 h-12" />,
+      path: '/ai-detector',
+      description: 'Identify AI-generated content with advanced detection algorithms and detailed analysis reports.',
       animation: 'Sleek horizontal scanning light passes over text'
     },
     {
-      id: 'paraphraser',
+      icon: RefreshCw,
       title: 'Paraphraser',
-      description: 'Rewrite content while maintaining original meaning and context',
-      icon: <RefreshCw className="w-12 h-12" />,
-      animation: 'Words morph with smooth letter-to-letter transformations'
+      path: '/paraphraser',
+      description: 'Rewrite content while maintaining original meaning with intelligent paraphrasing technology.',
+      animation: 'Words morph with smooth transformations'
     },
     {
-      id: 'grammar-checker',
+      icon: CheckCircle,
       title: 'Grammar Checker',
-      description: 'Advanced grammar and style checking with real-time suggestions',
-      icon: <CheckCircle className="w-12 h-12" />,
-      animation: 'Red underlines pop and fade as corrections are applied'
+      path: '/grammar-checker',
+      description: 'Catch grammar mistakes, spelling errors, and improve writing clarity with real-time suggestions.',
+      animation: 'Red underlines pop/fade as corrections are applied'
     },
     {
-      id: 'summarizer',
+      icon: FileText,
       title: 'Summarizer',
-      description: 'Extract key points and create concise summaries instantly',
-      icon: <FileText className="w-12 h-12" />,
+      path: '/summarizer',
+      description: 'Extract key points and create concise summaries from lengthy documents and articles.',
       animation: 'Text folds into sticky-note style cards'
     },
     {
-      id: 'plagiarism-checker',
+      icon: Shield,
       title: 'Plagiarism Checker',
-      description: 'Comprehensive plagiarism detection across billions of sources',
-      icon: <Shield className="w-12 h-12" />,
+      path: '/plagiarism-checker',
+      description: 'Ensure originality with comprehensive plagiarism detection across billions of web pages.',
       animation: 'Radar scan sweeps across highlighted text'
     },
     {
-      id: 'ai-humanizer',
+      icon: Users,
       title: 'AI Humanizer',
-      description: 'Transform AI text to sound more natural and human-like',
-      icon: <Users className="w-12 h-12" />,
-      animation: 'Text morphs smoothly into polished sentences'
+      path: '/ai-humanizer',
+      description: 'Transform AI-generated content to sound more natural and human-like.',
+      animation: 'Text morphs into polished sentences'
     },
     {
-      id: 'citation-generator',
+      icon: Quote,
       title: 'Citation Generator',
-      description: 'Generate accurate citations in multiple academic formats',
-      icon: <Quote className="w-12 h-12" />,
+      path: '/citation-generator',
+      description: 'Generate accurate citations in APA, MLA, Chicago, and other academic formats instantly.',
       animation: 'Auto-typing animation for citations'
     },
     {
-      id: 'translator',
+      icon: Languages,
       title: 'Translator',
-      description: 'Translate content across 100+ languages with context awareness',
-      icon: <Globe className="w-12 h-12" />,
+      path: '/translator',
+      description: 'Translate content between 100+ languages with context-aware AI translation.',
       animation: 'Words flip horizontally as language changes'
-    },
-    {
-      id: 'co-writer',
-      title: 'Co-Writer',
-      description: 'AI-powered writing assistant for collaborative content creation',
-      icon: <Edit className="w-12 h-12" />,
-      animation: 'Real-time live typing effect (like Google Docs)'
     }
   ];
 
-  const scrollToIndex = (index: number) => {
-    if (scrollRef.current) {
-      const cardWidth = 320;
-      const gap = 32;
-      const scrollPosition = index * (cardWidth + gap);
-      scrollRef.current.scrollTo({
-        left: scrollPosition,
-        behavior: 'smooth'
-      });
-      setCurrentIndex(index);
+  const nextSlide = () => {
+    setCurrentIndex((prev) => (prev + 1) % Math.max(1, features.length - 2));
+  };
+
+  const prevSlide = () => {
+    setCurrentIndex((prev) => (prev - 1 + Math.max(1, features.length - 2)) % Math.max(1, features.length - 2));
+  };
+
+  const getVisibleFeatures = () => {
+    const visible = [];
+    for (let i = 0; i < 3; i++) {
+      const index = (currentIndex + i) % features.length;
+      visible.push({ ...features[index], position: i });
     }
+    return visible;
   };
-
-  const handlePrevious = () => {
-    const newIndex = currentIndex > 0 ? currentIndex - 1 : features.length - 1;
-    scrollToIndex(newIndex);
-  };
-
-  const handleNext = () => {
-    const newIndex = currentIndex < features.length - 1 ? currentIndex + 1 : 0;
-    scrollToIndex(newIndex);
-  };
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (scrollRef.current) {
-        const cardWidth = 320;
-        const gap = 32;
-        const scrollLeft = scrollRef.current.scrollLeft;
-        const newIndex = Math.round(scrollLeft / (cardWidth + gap));
-        setCurrentIndex(newIndex);
-      }
-    };
-
-    const scrollElement = scrollRef.current;
-    if (scrollElement) {
-      scrollElement.addEventListener('scroll', handleScroll);
-      return () => scrollElement.removeEventListener('scroll', handleScroll);
-    }
-  }, []);
 
   return (
-    <section className="py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
+    <section className="py-20 lg:py-32 bg-gradient-to-br from-gray-50 to-blue-50 relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6 lg:px-24">
+        {/* Section Header */}
+        <motion.div
+          className="text-center mb-16"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
+          <h2 className="text-4xl lg:text-6xl font-bold text-gray-900 mb-6 tracking-tight">
             Powerful AI Writing Tools
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Discover our comprehensive suite of AI-powered writing tools designed to enhance 
-            your productivity and improve your content quality.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
+            Experience the future of writing with our comprehensive suite of AI-powered tools designed to enhance every aspect of your content creation.
           </p>
-        </div>
+        </motion.div>
 
+        {/* Features Carousel */}
         <div className="relative">
           {/* Navigation Arrows */}
-          <button
-            onClick={handlePrevious}
-            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-400 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300"
+          <motion.button
+            onClick={prevSlide}
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            whileHover={{ scale: 1.1, boxShadow: '0 0 20px rgba(58, 134, 255, 0.5)' }}
+            whileTap={{ scale: 0.9 }}
           >
             <ChevronLeft className="w-6 h-6" />
-          </button>
+          </motion.button>
 
-          <button
-            onClick={handleNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-400 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-300"
+          <motion.button
+            onClick={nextSlide}
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-12 h-12 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full flex items-center justify-center text-white shadow-lg hover:shadow-xl transition-all duration-300"
+            whileHover={{ scale: 1.1, boxShadow: '0 0 20px rgba(58, 134, 255, 0.5)' }}
+            whileTap={{ scale: 0.9 }}
           >
             <ChevronRight className="w-6 h-6" />
-          </button>
+          </motion.button>
 
-          {/* Features Carousel */}
-          <div
-            ref={scrollRef}
-            className="flex gap-8 overflow-x-auto scrollbar-hide scroll-smooth px-16"
-            style={{ scrollSnapType: 'x mandatory' }}
-          >
-            {features.map((feature, index) => (
-              <div
-                key={feature.id}
-                className={`flex-shrink-0 w-80 h-96 bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 p-8 group ${
-                  index === currentIndex ? 'scale-110 opacity-100' : 'scale-100 opacity-80'
-                }`}
-                style={{ scrollSnapAlign: 'center' }}
-              >
-                <div className="text-center">
-                  <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-teal-400 rounded-2xl flex items-center justify-center mx-auto mb-6 text-white group-hover:scale-110 transition-transform duration-300">
-                    {feature.icon}
-                  </div>
-                  
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                    {feature.title}
-                  </h3>
-                  
-                  <p className="text-gray-600 leading-relaxed mb-6">
-                    {feature.description}
-                  </p>
+          {/* Feature Cards */}
+          <div className="flex items-center justify-center space-x-8 px-16">
+            <AnimatePresence mode="wait">
+              {getVisibleFeatures().map((feature, index) => {
+                const Icon = feature.icon;
+                const isCenter = feature.position === 1;
 
-                  <div className="text-sm text-gray-500 italic">
-                    {feature.animation}
-                  </div>
-                </div>
+                return (
+                  <motion.div
+                    key={`${feature.title}-${currentIndex}`}
+                    className={`bg-white rounded-3xl p-8 shadow-lg transition-all duration-500 ${
+                      isCenter
+                        ? 'w-80 h-96 opacity-100 scale-110 shadow-2xl'
+                        : 'w-72 h-88 opacity-80 scale-90'
+                    }`}
+                    initial={{ opacity: 0, scale: 0.8, y: 50 }}
+                    animate={{
+                      opacity: isCenter ? 1 : 0.8,
+                      scale: isCenter ? 1.1 : 0.9,
+                      y: 0
+                    }}
+                    exit={{ opacity: 0, scale: 0.8, y: 50 }}
+                    transition={{ duration: 0.5, ease: 'easeInOut' }}
+                    whileHover={{
+                      scale: isCenter ? 1.15 : 0.95,
+                      y: -10,
+                      boxShadow: '0 20px 40px rgba(0,0,0,0.15)'
+                    }}
+                  >
+                    <Link to={feature.path} className="block h-full">
+                      <motion.div
+                        className="flex flex-col items-center text-center h-full"
+                      >
+                        <motion.div
+                          className="w-16 h-16 bg-gradient-to-r from-blue-500 to-teal-400 rounded-2xl flex items-center justify-center mb-6"
+                          animate={{
+                            boxShadow: [
+                              '0 0 20px rgba(58, 134, 255, 0.3)',
+                              '0 0 30px rgba(0, 200, 150, 0.4)',
+                              '0 0 20px rgba(58, 134, 255, 0.3)'
+                            ]
+                          }}
+                          transition={{
+                            duration: 3,
+                            repeat: Infinity,
+                            ease: 'easeInOut'
+                          }}
+                        >
+                          <Icon className="w-8 h-8 text-white" />
+                        </motion.div>
 
-                {/* Hover glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-teal-400/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </div>
-            ))}
+                        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                          {feature.title}
+                        </h3>
+
+                        <p className="text-gray-600 leading-relaxed mb-6 flex-grow">
+                          {feature.description}
+                        </p>
+
+                        <motion.div
+                          className="text-sm text-teal-600 font-medium bg-teal-50 rounded-full px-4 py-2"
+                          whileHover={{ scale: 1.05 }}
+                        >
+                          {feature.animation}
+                        </motion.div>
+                      </motion.div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
           </div>
 
-          {/* Dots indicator */}
-          <div className="flex justify-center mt-8 space-x-2">
-            {features.map((_, index) => (
-              <button
+          {/* Carousel Indicators */}
+          <div className="flex justify-center mt-12 space-x-2">
+            {Array.from({ length: Math.max(1, features.length - 2) }).map((_, index) => (
+              <motion.button
                 key={index}
-                onClick={() => scrollToIndex(index)}
+                onClick={() => setCurrentIndex(index)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? 'bg-gradient-to-r from-blue-500 to-teal-400 scale-125' 
+                  index === currentIndex
+                    ? 'bg-blue-500 shadow-lg'
                     : 'bg-gray-300 hover:bg-gray-400'
                 }`}
+                whileHover={{ scale: 1.2 }}
+                whileTap={{ scale: 0.9 }}
               />
             ))}
           </div>
