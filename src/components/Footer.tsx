@@ -55,7 +55,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative bg-gradient-to-br from-footer-bg via-gray-900 to-black text-white overflow-hidden">
+    <footer className="relative bg-gradient-to-br from-gray-900 via-gray-900 to-black text-white overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0" style={{
@@ -79,7 +79,7 @@ const Footer = () => {
                 className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-6 py-3 mb-6 border border-white/20"
                 whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(58, 134, 255, 0.3)' }}
               >
-                <Mail className="w-5 h-5 text-accent-green" />
+                <Mail className="w-5 h-5 text-teal-400" />
                 <span className="text-white/90 font-medium">Stay Updated</span>
               </motion.div>
 
@@ -105,11 +105,11 @@ const Footer = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Enter your email"
-                    className="w-full px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white placeholder-white/50 focus:outline-none focus:border-accent-blue focus:ring-2 focus:ring-accent-blue/20 transition-all duration-300"
+                    className="w-full px-6 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white placeholder-white/50 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-300"
                     required
                   />
                   <motion.div
-                    className="absolute inset-0 rounded-full border-2 border-accent-blue opacity-0 pointer-events-none"
+                    className="absolute inset-0 rounded-full border-2 border-blue-500 opacity-0 pointer-events-none"
                     animate={{
                       opacity: [0, 0.5, 0],
                       scale: [1, 1.05, 1]
@@ -124,7 +124,7 @@ const Footer = () => {
 
                 <motion.button
                   type="submit"
-                  className="group px-8 py-4 bg-gradient-to-r from-accent-blue to-accent-green rounded-full font-semibold hover:shadow-lg transition-all duration-300 flex items-center space-x-2 whitespace-nowrap"
+                  className="group px-8 py-4 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full font-semibold hover:shadow-lg transition-all duration-300 flex items-center space-x-2 whitespace-nowrap"
                   whileHover={{
                     scale: 1.05,
                     boxShadow: '0 10px 30px rgba(58, 134, 255, 0.4)'
@@ -154,12 +154,12 @@ const Footer = () => {
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
               >
-                <Link to="/" className="flex items-center space-x-3 mb-6">
-                  <div className="w-10 h-10 bg-gradient-to-r from-accent-blue to-accent-green rounded-xl flex items-center justify-center">
+                <div className="flex items-center space-x-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-teal-400 rounded-xl flex items-center justify-center">
                     <span className="text-white font-bold text-xl">E</span>
                   </div>
                   <span className="text-2xl font-bold">Editore</span>
-                </Link>
+                </div>
 
                 <p className="text-white/70 leading-relaxed mb-6">
                   Empowering writers worldwide with cutting-edge AI technology.
@@ -222,14 +222,14 @@ const Footer = () => {
                               <span className="relative">
                                 {link.name}
                                 <motion.div
-                                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-accent-blue to-accent-green group-hover:w-full transition-all duration-300"
+                                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 group-hover:w-full transition-all duration-300"
                                 />
                               </span>
                               <ExternalLink className="w-3 h-3 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                             </motion.a>
                           ) : (
-                            <Link
-                              to={link.path}
+                            <a
+                              href={link.path}
                               className="group flex items-center text-white/70 hover:text-white transition-colors duration-300 relative"
                             >
                               <motion.span
@@ -238,10 +238,10 @@ const Footer = () => {
                               >
                                 {link.name}
                                 <motion.div
-                                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-accent-blue to-accent-green group-hover:w-full transition-all duration-300"
+                                  className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 group-hover:w-full transition-all duration-300"
                                 />
                               </motion.span>
-                            </Link>
+                            </a>
                           )}
                         </motion.li>
                     ))}
@@ -282,7 +282,7 @@ const Footer = () => {
                 </motion.span>
 
                 <motion.div
-                  className="w-2 h-2 bg-accent-green rounded-full"
+                  className="w-2 h-2 bg-teal-400 rounded-full"
                   animate={{
                     scale: [1, 1.5, 1],
                     opacity: [0.5, 1, 0.5]
