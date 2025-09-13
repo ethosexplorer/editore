@@ -6,11 +6,11 @@ const ParaphraserPage: React.FC = () => {
   const [outputText, setOutputText] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [mode, setMode] = useState('standard');
-  const [creativityLevel, setCreativityLevel] = useState(50); // Synonym Slider (0-100)
-  const [language, setLanguage] = useState('en-US'); // Language selection
-  const [selectedWord, setSelectedWord] = useState<string | null>(null); // For clickable synonyms
-  const [synonyms, setSynonyms] = useState<string[]>([]); // Synonym suggestions
-  const [isPremium, setIsPremium] = useState(false); // Mock premium status
+  const [creativityLevel, setCreativityLevel] = useState(50);
+  const [language, setLanguage] = useState('en-US');
+  const [selectedWord, setSelectedWord] = useState<string | null>(null);
+  const [synonyms, setSynonyms] = useState<string[]>([]);
+  const [isPremium, setIsPremium] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -55,28 +55,20 @@ const ParaphraserPage: React.FC = () => {
     { id: 'tr', name: 'Turkish' },
     { id: 'uk', name: 'Ukrainian' },
     { id: 'vi', name: 'Vietnamese' },
-    // Add more as needed for 20+
   ];
 
   const handleParaphrase = async () => {
     if (!inputText.trim()) return;
 
     setIsProcessing(true);
-    // Simulate API call with mode and creativity level
     setTimeout(() => {
       let paraphrased = inputText;
       if (mode === 'standard') {
         paraphrased = inputText
-          .replace(/\b(the|a|an)\b/gi, (match) => {
-            const alternatives = ['the', 'a', 'an'];
-            return alternatives[Math.floor(Math.random() * alternatives.length)];
-          })
-          .replace(/\b(and|but|or)\b/gi, (match) => {
-            const alternatives = { 'and': 'as well as', 'but': 'however', 'or': 'alternatively' };
-            return alternatives[match.toLowerCase() as keyof typeof alternatives] || match;
-          });
+          .replace(/\b(the|a|an)\b/gi, (match) => ['the', 'a', 'an'][Math.floor(Math.random() * 3)])
+          .replace(/\b(and|but|or)\b/gi, (match) => ({ and: 'as well as', but: 'however', or: 'alternatively' }[match.toLowerCase()] || match));
       } else if (mode === 'fluency') {
-        paraphrased = inputText.replace(/(\w+ly)\s(\w+)/gi, '$2 $1'); // Example fluency tweak
+        paraphrased = inputText.replace(/(\w+ly)\s(\w+)/gi, '$2 $1');
       } else if (mode === 'formal') {
         paraphrased = inputText.replace(/\b(gonna|wanna)\b/gi, 'going to');
       } else if (mode === 'academic') {
@@ -90,12 +82,11 @@ const ParaphraserPage: React.FC = () => {
       } else if (mode === 'shorten') {
         paraphrased = inputText.split(' ').slice(0, Math.floor(inputText.split(' ').length * 0.8)).join(' ');
       } else if (mode === 'humanize') {
-        paraphrased = inputText.replace(/\b(however|therefore)\b/gi, 'but' );
+        paraphrased = inputText.replace(/\b(however|therefore)\b/gi, 'but');
       } else if (mode === 'custom') {
         paraphrased = inputText.replace(/\b(\w+)\b/gi, creativityLevel > 50 ? '$1 creatively' : '$1');
       }
 
-      // Adjust based on language (mock example)
       if (language !== 'en-US') {
         paraphrased = `[Translated to ${language}] ${paraphrased}`;
       }
@@ -120,7 +111,6 @@ const ParaphraserPage: React.FC = () => {
   };
 
   const handleWordClick = (word: string) => {
-    // Mock synonym suggestions
     const mockSynonyms = {
       good: ['great', 'excellent', 'fine', 'superb'],
       big: ['large', 'huge', 'enormous', 'massive'],
@@ -156,68 +146,62 @@ const ParaphraserPage: React.FC = () => {
     const file = event.target.files?.[0];
     if (file && (file.type === 'text/plain' || file.type === 'application/pdf')) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setInputText(e.target?.result as string);
-      };
+      reader.onload = (e) => setInputText(e.target?.result as string);
       reader.readAsText(file);
     }
   };
 
-  const handleCopyAll = () => {
-    handleCopy();
-  };
+  const handleCopyAll = () => handleCopy();
 
-  const togglePremium = () => {
-    setIsPremium(!isPremium);
-  };
+  const togglePremium = () => setIsPremium(!isPremium);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-teal-100">
-      <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
+      <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-teal-600 rounded-2xl mb-6">
-            <RefreshCw className="w-8 h-8 text-white" />
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full mb-8 animate-pulse-slow">
+            <RefreshCw className="w-10 h-10 text-white" />
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+          <h1 className="text-5xl md:text-6xl font-extrabold text-gray-900 mb-6 tracking-tight" style={{ fontFamily: "'Playfair Display', serif" }}>
             AI Paraphraser
           </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Rewrite content in over 20 languages with customizable modes, tones, and creativity levels. Ad-free and no sign-up required.
+          <p className="text-xl text-gray-700 max-w-4xl mx-auto leading-relaxed" style={{ fontFamily: "'Lora', serif" }}>
+            Transform your text with elegance in over 20 languages using customizable modes and creative controls. Ad-free and accessible without sign-up.
           </p>
           <button
             onClick={togglePremium}
-            className="mt-4 inline-flex items-center px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300"
+            className="mt-6 px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 transform"
           >
             {isPremium ? 'Downgrade to Free' : 'Upgrade to Premium'}
           </button>
         </div>
 
         {/* Settings Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex items-center mb-4">
-            <Settings className="w-5 h-5 text-gray-600 mr-2" />
-            <h3 className="text-lg font-semibold text-gray-900">Paraphrasing Options</h3>
+        <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 mb-12 border border-gray-100">
+          <div className="flex items-center mb-6">
+            <Settings className="w-6 h-6 text-indigo-600 mr-3" />
+            <h3 className="text-xl font-semibold text-gray-900" style={{ fontFamily: "'Montserrat', sans-serif" }}>Paraphrasing Options</h3>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Mode Selection */}
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Select Mode</h4>
-              <div className="grid md:grid-cols-5 lg:grid-cols-10 gap-4">
+              <h4 className="text-md font-medium text-gray-700 mb-4">Select Mode</h4>
+              <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-4">
                 {allModes.map((modeOption) => (
                   <button
                     key={modeOption.id}
                     onClick={() => setMode(modeOption.id)}
                     disabled={modeOption.premium && !isPremium}
-                    className={`p-3 rounded-xl border-2 transition-all duration-300 text-sm ${
+                    className={`p-4 rounded-xl border-2 transition-all duration-300 text-sm hover:shadow-md ${
                       mode === modeOption.id
-                        ? 'border-teal-500 bg-teal-50'
+                        ? 'border-indigo-600 bg-indigo-50'
                         : modeOption.premium && !isPremium
                         ? 'border-gray-300 bg-gray-50 text-gray-400 cursor-not-allowed'
-                        : 'border-gray-200 hover:border-teal-300'
+                        : 'border-gray-200 hover:border-indigo-400'
                     }`}
                   >
-                    <div className="font-semibold text-gray-900 mb-1">{modeOption.name}</div>
+                    <div className="font-medium text-gray-900 mb-1">{modeOption.name}</div>
                     <div className="text-xs text-gray-600">{modeOption.description}</div>
                     {modeOption.premium && !isPremium && (
                       <div className="text-xs text-purple-600 mt-1">Premium</div>
@@ -226,36 +210,36 @@ const ParaphraserPage: React.FC = () => {
                 ))}
               </div>
               {!isPremium && (
-                <p className="text-xs text-gray-500 mt-2">Upgrade to Premium to unlock all modes!</p>
+                <p className="text-xs text-gray-500 mt-4">Unlock all modes with Premium!</p>
               )}
             </div>
             {/* Synonym Slider */}
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Synonyms Slider</h4>
+              <h4 className="text-md font-medium text-gray-700 mb-4">Synonyms Slider</h4>
               <input
                 type="range"
                 min="0"
                 max="100"
                 value={creativityLevel}
                 onChange={(e) => setCreativityLevel(Number(e.target.value))}
-                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                className="w-full h-2 bg-gradient-to-r from-indigo-200 to-purple-200 rounded-lg appearance-none cursor-pointer"
               />
-              <div className="text-sm text-gray-500 mt-2">
+              <div className="text-sm text-gray-600 mt-2">
                 {creativityLevel < 30 ? 'Accurate' : creativityLevel > 70 ? 'Creative' : 'Balanced'}
               </div>
             </div>
             {/* Language Selection */}
             <div>
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Language</h4>
-              <div className="flex items-center space-x-2">
-                <Globe className="w-5 h-5 text-gray-600" />
+              <h4 className="text-md font-medium text-gray-700 mb-4">Language</h4>
+              <div className="flex items-center space-x-3 bg-gray-50 p-3 rounded-xl border border-gray-200">
+                <Globe className="w-6 h-6 text-indigo-600" />
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 flex-1"
+                  className="flex-1 p-2 bg-transparent border-0 focus:ring-2 focus:ring-indigo-500 outline-none"
                 >
                   {languages.map((lang) => (
-                    <option key={lang.id} value={lang.id}>{lang.name}</option>
+                    <option key={lang.id} value={lang.id} className="bg-white">{lang.name}</option>
                   ))}
                 </select>
               </div>
@@ -263,33 +247,33 @@ const ParaphraserPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-12">
           {/* Input Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
+          <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-gray-100 transform hover:scale-101 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Original Text</h2>
-              <span className="text-sm text-gray-500">
+              <h2 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Playfair Display', serif" }}>Original Text</h2>
+              <span className="text-sm text-gray-600">
                 {inputText.length} characters
               </span>
             </div>
-            <div className="space-y-3 mb-4">
-              <div className="flex space-x-2">
+            <div className="space-y-4 mb-6">
+              <div className="flex space-x-3">
                 <button
                   onClick={handleTrySample}
-                  className="flex-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors flex items-center justify-center"
+                  className="flex-1 px-5 py-3 bg-blue-100 text-blue-800 rounded-xl hover:bg-blue-200 transition-all duration-300 flex items-center justify-center space-x-2"
                 >
-                  <FileText className="w-4 h-4 mr-2" />
-                  Try Sample Text
+                  <FileText className="w-5 h-5" />
+                  <span>Try Sample Text</span>
                 </button>
                 <button
                   onClick={handlePasteText}
-                  className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center"
+                  className="px-5 py-3 bg-green-100 text-green-800 rounded-xl hover:bg-green-200 transition-all duration-300 flex items-center justify-center space-x-2"
                 >
-                  <Upload className="w-4 h-4" />
-                  Paste Text
+                  <Upload className="w-5 h-5" />
+                  <span>Paste Text</span>
                 </button>
               </div>
-              <label className="block w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer flex items-center justify-center">
+              <label className="block w-full px-5 py-3 bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition-all duration-300 cursor-pointer flex items-center justify-center space-x-2">
                 <input
                   type="file"
                   ref={fileInputRef}
@@ -297,51 +281,51 @@ const ParaphraserPage: React.FC = () => {
                   accept=".txt,.doc,.docx,.pdf"
                   className="hidden"
                 />
-                <Upload className="w-4 h-4 mr-2" />
-                Upload Doc
+                <Upload className="w-5 h-5" />
+                <span>Upload Doc</span>
               </label>
             </div>
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="To rewrite text, enter or paste it here and press 'Paraphrase'..."
-              className="w-full h-80 p-4 border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className="w-full h-80 p-6 bg-gray-50 border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-900 placeholder-gray-400"
             />
             <button
               onClick={handleParaphrase}
               disabled={!inputText.trim() || isProcessing}
-              className="w-full mt-6 px-8 py-4 bg-gradient-to-r from-green-500 to-teal-600 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              className="w-full mt-6 px-10 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:scale-102 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
             >
               {isProcessing ? (
                 <>
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  Paraphrasing...
+                  <div className="w-5 h-5 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Paraphrasing...</span>
                 </>
               ) : (
                 <>
-                  <Zap className="w-5 h-5 mr-2" />
-                  Paraphrase
+                  <Zap className="w-5 h-5" />
+                  <span>Paraphrase</span>
                 </>
               )}
             </button>
           </div>
 
           {/* Output Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
+          <div className="bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl p-8 border border-gray-100 transform hover:scale-101 transition-all duration-300">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Paraphrased Text</h2>
+              <h2 className="text-3xl font-bold text-gray-900" style={{ fontFamily: "'Playfair Display', serif" }}>Paraphrased Text</h2>
               {outputText && (
-                <div className="flex space-x-2">
+                <div className="flex space-x-3">
                   <button
                     onClick={handleCopyAll}
-                    className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                    className="p-3 bg-gray-50 text-gray-700 rounded-xl hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-300"
                     title="Copy All"
                   >
                     <Copy className="w-5 h-5" />
                   </button>
                   <button
                     onClick={handleDownload}
-                    className="p-2 text-gray-600 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition-colors"
+                    className="p-3 bg-gray-50 text-gray-700 rounded-xl hover:bg-indigo-100 hover:text-indigo-700 transition-all duration-300"
                     title="Download as file"
                   >
                     <Download className="w-5 h-5" />
@@ -351,7 +335,7 @@ const ParaphraserPage: React.FC = () => {
             </div>
             <div
               ref={outputRef}
-              className="h-80 p-4 border border-gray-200 rounded-2xl bg-gray-50 overflow-y-auto"
+              className="h-80 p-6 bg-gray-50 border border-gray-200 rounded-2xl overflow-y-auto"
             >
               {outputText ? (
                 <div className="relative">
@@ -360,21 +344,21 @@ const ParaphraserPage: React.FC = () => {
                       <span
                         key={index}
                         onClick={() => handleWordClick(word)}
-                        className="cursor-pointer hover:bg-teal-100 rounded px-1"
+                        className="cursor-pointer hover:bg-indigo-100 rounded px-1 transition-colors duration-200"
                       >
                         {word}{' '}
                       </span>
                     ))}
                   </p>
                   {selectedWord && synonyms.length > 0 && (
-                    <div className="absolute z-10 bg-white border border-gray-200 rounded-lg shadow-lg p-2 mt-2 left-0">
-                      <h4 className="text-sm font-medium text-gray-700">Synonyms for "{selectedWord}"</h4>
-                      <div className="flex flex-wrap gap-2 mt-2">
+                    <div className="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-lg p-4 mt-2 left-0 animate-fade-in">
+                      <h4 className="text-md font-medium text-gray-800 mb-2">Synonyms for "{selectedWord}"</h4>
+                      <div className="flex flex-wrap gap-2">
                         {synonyms.map((synonym, idx) => (
                           <button
                             key={idx}
                             onClick={() => replaceWord(synonym)}
-                            className="px-2 py-1 bg-teal-50 hover:bg-teal-100 rounded text-sm"
+                            className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm transition-all duration-200"
                           >
                             {synonym}
                           </button>
@@ -384,16 +368,16 @@ const ParaphraserPage: React.FC = () => {
                   )}
                 </div>
               ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
+                <div className="h-full flex items-center justify-center text-gray-500">
                   <div className="text-center">
-                    <RefreshCw className="w-12 h-12 mx-auto mb-4" />
-                    <p>Paraphrased text will appear here</p>
+                    <RefreshCw className="w-12 h-12 mx-auto mb-4 animate-spin-slow" />
+                    <p className="text-lg">Paraphrased text will appear here</p>
                   </div>
                 </div>
               )}
             </div>
             {outputText && (
-              <div className="mt-4 text-sm text-gray-500">
+              <div className="mt-4 text-sm text-gray-600">
                 {outputText.length} characters • Mode: {allModes.find(m => m.id === mode)?.name} • Language: {languages.find(l => l.id === language)?.name}
               </div>
             )}
@@ -401,42 +385,22 @@ const ParaphraserPage: React.FC = () => {
         </div>
 
         {/* Features */}
-        <div className="mt-16 grid md:grid-cols-5 gap-8">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <RefreshCw className="w-6 h-6 text-green-600" />
+        <div className="mt-20 grid md:grid-cols-5 gap-8">
+          {[
+            { icon: RefreshCw, title: '10+ Modes', desc: 'Free and premium modes for every style' },
+            { icon: Zap, title: 'Synonyms Slider', desc: 'Adjust creativity for precise or unique output' },
+            { icon: Globe, title: '20+ Languages', desc: 'Rephrase in multiple languages' },
+            { icon: Copy, title: 'Clickable Synonyms', desc: 'AI-powered thesaurus for word choices' },
+            { icon: Upload, title: 'Upload Docs', desc: 'Paraphrase .txt, .doc, .pdf files' },
+          ].map(({ icon: Icon, title, desc }, idx) => (
+            <div key={idx} className="text-center p-6 bg-white/90 backdrop-blur-md rounded-2xl shadow-lg border border-gray-100 hover:bg-indigo-50 transition-all duration-300 transform hover:-translate-y-2">
+              <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon className="w-8 h-8 text-indigo-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2" style={{ fontFamily: "'Montserrat', sans-serif" }}>{title}</h3>
+              <p className="text-gray-600 text-sm leading-relaxed" style={{ fontFamily: "'Lora', serif" }}>{desc}</p>
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">10+ Modes</h3>
-            <p className="text-gray-600 text-sm">Free and premium modes for every style</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Zap className="w-6 h-6 text-teal-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Synonyms Slider</h3>
-            <p className="text-gray-600 text-sm">Adjust creativity for precise or unique output</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-6 h-6 text-blue-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">20+ Languages</h3>
-            <p className="text-gray-600 text-sm">Rephrase in multiple languages</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Copy className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Clickable Synonyms</h3>
-            <p className="text-gray-600 text-sm">AI-powered thesaurus for word choices</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Upload className="w-6 h-6 text-indigo-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Upload Docs</h3>
-            <p className="text-gray-600 text-sm">Paraphrase .txt, .doc, .pdf files</p>
-          </div>
+          ))}
         </div>
       </div>
     </div>
