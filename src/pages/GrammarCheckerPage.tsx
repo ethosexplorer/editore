@@ -19,8 +19,8 @@ const GrammarCheckerPage: React.FC = () => {
   const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [ignoredIssues, setIgnoredIssues] = useState<Set<number>>(new Set());
-  const [imageText, setImageText] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [documentText, setDocumentText] = useState('');
+  const [documentPreview, setDocumentPreview] = useState<string | null>(null);
   const [language, setLanguage] = useState('en-US');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,7 +53,7 @@ const GrammarCheckerPage: React.FC = () => {
   ];
 
   const handleCheck = async () => {
-    if (!text.trim() && !imageText.trim()) return;
+    if (!text.trim() && !documentText.trim()) return;
 
     setIsChecking(true);
     setTimeout(() => {
@@ -63,7 +63,7 @@ const GrammarCheckerPage: React.FC = () => {
           type: 'grammar',
           severity: 'error',
           text: 'are',
-          suggestion: language === 'en-GB' ? 'is' : 'are', // Example language-specific rule
+          suggestion: language === 'en-GB' ? 'is' : 'are',
           explanation: `Subject-verb disagreement. ${language === 'en-GB' ? 'British English prefers "is" for singular subjects.' : 'American English allows "are" here.'}`,
           position: { start: 10, end: 13 },
           ignored: false,
@@ -93,7 +93,7 @@ const GrammarCheckerPage: React.FC = () => {
           type: 'grammar',
           severity: 'suggestion',
           text: 'very good',
-          suggestion: language === 'fr' ? 'excellent' : 'great', // Mock language variation
+          suggestion: language === 'fr' ? 'excellent' : 'great',
           explanation: `Style suggestion: ${language === 'fr' ? 'French prefers "excellent" for emphasis.' : 'English works well with "great".'}`,
           position: { start: 60, end: 69 },
           ignored: false,
@@ -106,7 +106,7 @@ const GrammarCheckerPage: React.FC = () => {
 
   const applyFix = (issue: Issue) => {
     if (!issue.ignored) {
-      const combinedText = text || imageText;
+      const combinedText = text || documentText;
       const newText = combinedText.substring(0, issue.position.start) + issue.suggestion + combinedText.substring(issue.position.end);
       setText(newText);
       setIssues(issues.filter(i => i.id !== issue.id));
@@ -138,25 +138,25 @@ const GrammarCheckerPage: React.FC = () => {
     return 'border-blue-200 bg-blue-50';
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDocumentUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
+    if (file && (file.type === 'text/plain' || file.type === 'application/pdf' || file.type === 'application/msword' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result as string);
+        setDocumentPreview(file.name); // Use filename as preview
         setTimeout(() => {
-          const mockOcrText = 'This is a sample image text with some are errors recieve, and very good results.';
-          setImageText(mockOcrText);
-          setText(''); // Clear manual text if image is uploaded
+          const mockDocumentText = 'This is a sample document text with some are errors recieve, and very good results.';
+          setDocumentText(mockDocumentText);
+          setText(''); // Clear manual text if document is uploaded
         }, 1500);
       };
-      reader.readAsDataURL(file);
+      reader.readAsText(file);
     }
   };
 
-  const handleClearImage = () => {
-    setImagePreview(null);
-    setImageText('');
+  const handleClearDocument = () => {
+    setDocumentPreview(null);
+    setDocumentText('');
     setText('');
     setIssues([]);
   };
@@ -173,7 +173,7 @@ const GrammarCheckerPage: React.FC = () => {
             Grammar Checker
           </h1>
           <p className="text-base sm:text-lg text-gray-700 max-w-xl mx-auto leading-relaxed" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
-            Scans for errors in real-time, providing corrections and explanations to polish your writing. Works with browsers, Word, mobile apps, and images!
+            Scans for errors in real-time, providing corrections and explanations to polish your writing. Works with browsers, Word, mobile apps, and documents!
           </p>
         </div>
 
@@ -215,11 +215,11 @@ const GrammarCheckerPage: React.FC = () => {
               </h2>
               <div className="flex items-center space-x-2 sm:space-x-4">
                 <span className="text-sm text-gray-600">
-                  {(text || imageText).length} chars • {(text || imageText).split(' ').filter(w => w).length} words
+                  {(text || documentText).length} chars • {(text || documentText).split(' ').filter(w => w).length} words
                 </span>
                 <button
                   onClick={handleCheck}
-                  disabled={!text.trim() && !imageText.trim() || isChecking}
+                  disabled={!text.trim() && !documentText.trim() || isChecking}
                   className="px-4 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500 to-sky-500 text-white font-semibold rounded-lg hover:shadow-md hover:scale-105 transition-all duration-200 flex items-center space-x-1"
                 >
                   {isChecking ? (
@@ -244,33 +244,30 @@ const GrammarCheckerPage: React.FC = () => {
               className="w-full h-56 sm:h-72 p-3 sm:p-4 bg-gray-50 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500 text-gray-900 placeholder-gray-500"
             />
 
-            {/* Image Upload Section */}
+            {/* Document Upload Section */}
             <div className="mt-4">
               <label className="block w-full px-3 sm:px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-all duration-200 cursor-pointer flex items-center justify-center space-x-2">
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handleImageUpload}
-                  accept="image/*"
+                  onChange={handleDocumentUpload}
+                  accept=".txt,.pdf,.doc,.docx"
                   className="hidden"
                 />
                 <Upload className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>Upload Image</span>
+                <span style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>Upload Document</span>
               </label>
-              {imagePreview && (
-                <div className="mt-2 relative">
-                  <img src={imagePreview} alt="Uploaded" className="max-w-full h-auto rounded-lg border border-gray-200" />
-                  <button
-                    onClick={handleClearImage}
-                    className="absolute top-2 right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors duration-200"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                  <p className="mt-2 text-sm text-gray-600" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
-                    Extracted text: {imageText || 'Processing...'}
+              {documentPreview && (
+                <div className="mt-2">
+                  <p className="text-sm text-gray-600" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
+                    Uploaded: {documentPreview} (Extracted text: {documentText || 'Processing...'})
                   </p>
+                  <button
+                    onClick={handleClearDocument}
+                    className="mt-2 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors duration-200 text-sm"
+                  >
+                    Clear Document
+                  </button>
                 </div>
               )}
             </div>
@@ -417,10 +414,10 @@ const GrammarCheckerPage: React.FC = () => {
               <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
             <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-1" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
-              Image Support
+              Document Support
             </h3>
             <p className="text-sm text-gray-600" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
-              Extract and check text from uploaded images
+              Extract and check text from uploaded documents
             </p>
           </div>
         </div>
