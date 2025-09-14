@@ -1,19 +1,44 @@
 import React, { useState } from 'react';
-import { FileText, Zap, Copy, Download, Upload } from 'lucide-react';
+import { FileText, Zap, Copy, Download, Upload, Trash2, Eye, Edit, Settings, List, Type, Target } from 'lucide-react';
 
 const SummarizerPage: React.FC = () => {
   const [inputText, setInputText] = useState('');
   const [summary, setSummary] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [summaryMode, setSummaryMode] = useState('paragraph');
   const [summaryLength, setSummaryLength] = useState('short');
   const [files, setFiles] = useState<File[]>([]);
   const [bulkSummaries, setBulkSummaries] = useState<{ fileName: string; summary: string }[]>([]);
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [showKeywords, setShowKeywords] = useState(false);
+
+  const modeOptions = [
+    { id: 'paragraph', name: 'Paragraph', icon: Type, description: 'Standard paragraph format' },
+    { id: 'bullet', name: 'Bullet Points', icon: List, description: 'Key points as bullets' },
+    { id: 'custom', name: 'Custom', icon: Target, description: 'Custom formatting options' }
+  ];
 
   const lengthOptions = [
     { id: 'short', name: 'Short', description: '2-3 sentences' },
     { id: 'medium', name: 'Medium', description: '4-6 sentences' },
     { id: 'long', name: 'Long', description: '7-10 sentences' }
   ];
+
+  const extractKeywords = (text: string): string[] => {
+    const words = text.toLowerCase().split(/\W+/).filter(word => 
+      word.length > 4 && !['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had', 'her', 'was', 'one', 'our', 'out', 'day', 'get', 'has', 'him', 'his', 'how', 'its', 'may', 'new', 'now', 'old', 'see', 'two', 'who', 'boy', 'did', 'man', 'way'].includes(word)
+    );
+    
+    const frequency: Record<string, number> = {};
+    words.forEach(word => {
+      frequency[word] = (frequency[word] || 0) + 1;
+    });
+    
+    return Object.entries(frequency)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 8)
+      .map(([word]) => word);
+  };
 
   const handleSummarize = async () => {
     const wordCount = inputText.trim().split(/\s+/).filter(w => w).length;
@@ -24,11 +49,26 @@ const SummarizerPage: React.FC = () => {
     }
 
     setIsProcessing(true);
+    
+    // Extract keywords
+    const extractedKeywords = extractKeywords(inputText);
+    setKeywords(extractedKeywords);
+
     setTimeout(() => {
-      const sentences = inputText.split('.').filter(s => s.trim());
+      const sentences = inputText.split(/[.!?]+/).filter(s => s.trim());
       const summaryCount = summaryLength === 'short' ? 2 : summaryLength === 'medium' ? 4 : 7;
       const selectedSentences = sentences.slice(0, summaryCount);
-      setSummary(selectedSentences.join('. ') + '.');
+      
+      let formattedSummary = '';
+      if (summaryMode === 'bullet') {
+        formattedSummary = selectedSentences.map(s => `• ${s.trim()}`).join('\n');
+      } else if (summaryMode === 'custom') {
+        formattedSummary = selectedSentences.map((s, i) => `${i + 1}. ${s.trim()}`).join('\n');
+      } else {
+        formattedSummary = selectedSentences.join('. ') + '.';
+      }
+      
+      setSummary(formattedSummary);
 
       if (files.length > 0) {
         const bulkData = files.map(file => ({
@@ -44,10 +84,10 @@ const SummarizerPage: React.FC = () => {
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFiles = Array.from(event.target.files || []);
     if (uploadedFiles.length > 0) {
-      setFiles(uploadedFiles);
+      setFiles([...files, ...uploadedFiles]);
       const reader = new FileReader();
       reader.onload = (e) => {
-        setInputText(e.target?.result as string || '');
+        setInputText(prev => prev + '\n' + (e.target?.result as string || ''));
       };
       reader.readAsText(uploadedFiles[0]);
     }
@@ -56,7 +96,6 @@ const SummarizerPage: React.FC = () => {
   const removeFile = (fileName: string) => {
     setFiles(files.filter(f => f.name !== fileName));
     setBulkSummaries(bulkSummaries.filter(s => s.fileName !== fileName));
-    if (files.length === 1) setInputText('');
   };
 
   const handleCopy = () => {
@@ -70,6 +109,7 @@ const SummarizerPage: React.FC = () => {
     a.href = url;
     a.download = 'summary.txt';
     a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getCompressionRatio = () => {
@@ -77,185 +117,298 @@ const SummarizerPage: React.FC = () => {
     return Math.round((1 - summary.length / inputText.length) * 100);
   };
 
+  const paraphraseSummary = () => {
+    if (!summary) return;
+    setIsProcessing(true);
+    setTimeout(() => {
+      const paraphrased = summary.replace(/\b(is|are|was|were)\b/g, (match) => {
+        const alternatives = { 'is': 'becomes', 'are': 'represent', 'was': 'existed as', 'were': 'functioned as' };
+        return alternatives[match as keyof typeof alternatives] || match;
+      });
+      setSummary(paraphrased);
+      setIsProcessing(false);
+    }, 1500);
+  };
+
+  const wordCount = inputText.trim().split(/\s+/).filter(w => w).length;
+  const sentenceCount = summary ? summary.split(/[.!?]+/).filter(s => s.trim()).length : 0;
+  const summaryWordCount = summary ? summary.split(/\s+/).filter(w => w).length : 0;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100">
-      <div className="max-w-6xl mx-auto px-6 py-12">
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl mb-6 animate-pulse">
-            <FileText className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-            AI Summarizer
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-            Summarizes long texts into concise summaries with customizable options.
-          </p>
-        </div>
-
-        {/* Settings */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {/* Summary Length */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-                Summary Length
-              </h3>
-              <div className="space-y-3">
-                {lengthOptions.map((option) => (
-                  <label key={option.id} className="flex items-center cursor-pointer">
-                    <input
-                      type="radio"
-                      name="length"
-                      value={option.id}
-                      checked={summaryLength === option.id}
-                      onChange={(e) => setSummaryLength(e.target.value)}
-                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
-                    />
-                    <div className="ml-3">
-                      <div className="font-medium text-gray-900" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{option.name}</div>
-                      <div className="text-sm text-gray-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{option.description}</div>
-                    </div>
-                  </label>
-                ))}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+                <FileText className="w-6 h-6 text-white" />
               </div>
+              <h1 className="text-2xl font-bold text-gray-900">Summarizer</h1>
             </div>
-          </div>
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-8">
-          {/* Input Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Original Text</h2>
-              <label className="flex items-center px-4 py-2 bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200 transition-colors">
-                <Upload className="w-4 h-4 mr-2" />
-                <span className="text-sm font-medium" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Upload Doc</span>
-                <input
-                  type="file"
-                  accept=".txt,.doc,.docx,.pdf"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {files.length > 0 && (
-              <div className="mb-4 space-y-2">
-                {files.map((file) => (
-                  <div key={file.name} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                    <span className="text-sm text-gray-700 truncate flex-1 mr-2" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{file.name}</span>
-                    <button onClick={() => removeFile(file.name)} className="text-red-500 hover:text-red-700 text-sm">Remove</button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <textarea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              placeholder="To summarize text, add at least 40 words. Paste your text here or upload a document to begin analysis..."
-              className="w-full h-80 p-4 border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            />
-
-            <button
-              onClick={handleSummarize}
-              disabled={!inputText.trim() && files.length === 0 || isProcessing}
-              className="w-full mt-6 px-8 py-4 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-full hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {isProcessing ? (
-                <>
-                  <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                  Summarizing...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5 mr-2" />
-                  <span style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Summarize</span>
-                </>
-              )}
+            <button className="px-4 py-2 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors">
+              Upgrade to Premium
             </button>
           </div>
+        </div>
 
-          {/* Output Section */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Summary</h2>
-              {summary && (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleCopy}
-                    className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                    title="Copy to clipboard"
-                  >
-                    <Copy className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={handleDownload}
-                    className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                    title="Download as file"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                </div>
-              )}
-            </div>
+        {/* Mode Selection */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex items-center space-x-6 mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Modes:</h3>
+            {modeOptions.map((mode) => (
+              <button
+                key={mode.id}
+                onClick={() => setSummaryMode(mode.id)}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  summaryMode === mode.id
+                    ? 'bg-green-100 text-green-700 border-2 border-green-300'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                {mode.name}
+              </button>
+            ))}
+          </div>
 
-            <div className="h-80 p-4 border border-gray-200 rounded-2xl bg-gray-50">
-              {summary ? (
-                <div className="h-full overflow-y-auto">
-                  <p className="text-gray-900 leading-relaxed" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{summary}</p>
-                </div>
-              ) : (
-                <div className="h-full flex items-center justify-center text-gray-400">
-                  <div className="text-center">
-                    <FileText className="w-12 h-12 mx-auto mb-4" />
-                    <p style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Summary will appear here</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {summary && (
-              <div className="mt-6 grid grid-cols-3 gap-4">
-                <div className="text-center p-3 bg-purple-50 rounded-xl">
-                  <div className="text-lg font-bold text-purple-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-                    {summary.split(' ').filter(w => w).length}
-                  </div>
-                  <div className="text-xs text-purple-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Words</div>
-                </div>
-                <div className="text-center p-3 bg-indigo-50 rounded-xl">
-                  <div className="text-lg font-bold text-indigo-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-                    {summary.split('.').filter(s => s.trim()).length}
-                  </div>
-                  <div className="text-xs text-indigo-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Sentences</div>
-                </div>
-                <div className="text-center p-3 bg-green-50 rounded-xl">
-                  <div className="text-lg font-bold text-green-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>
-                    {getCompressionRatio()}%
-                  </div>
-                  <div className="text-xs text-green-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Compressed</div>
-                </div>
+          {/* Summary Length Slider */}
+          <div className="flex items-center space-x-6">
+            <span className="text-lg font-semibold text-gray-900">Summary Length:</span>
+            <div className="flex items-center space-x-4 flex-1">
+              <span className="text-sm text-gray-600">Short</span>
+              <div className="flex-1 relative">
+                <input
+                  type="range"
+                  min="0"
+                  max="2"
+                  step="1"
+                  value={summaryLength === 'short' ? 0 : summaryLength === 'medium' ? 1 : 2}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    setSummaryLength(value === 0 ? 'short' : value === 1 ? 'medium' : 'long');
+                  }}
+                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
+                />
+                <div className="absolute top-0 left-0 h-2 bg-green-500 rounded-lg" 
+                     style={{ width: `${(summaryLength === 'short' ? 0 : summaryLength === 'medium' ? 1 : 2) * 50}%` }}></div>
               </div>
-            )}
+              <span className="text-sm text-gray-600">Long</span>
+            </div>
+          </div>
+        </div>
 
-            {bulkSummaries.length > 0 && (
-              <div className="mt-6 bg-gray-50 rounded-2xl p-4">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>Bulk Summaries</h3>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {bulkSummaries.map((item, index) => (
-                    <div key={index} className="p-2 bg-white rounded-lg shadow">
-                      <div className="font-medium text-gray-900 truncate" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{item.fileName}</div>
-                      <p className="text-sm text-gray-600" style={{ fontFamily: 'ui-sans-serif, system-ui' }}>{item.summary}</p>
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Input Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* File Upload Area */}
+            {files.length > 0 && (
+              <div className="p-4 border-b border-gray-200">
+                <div className="space-y-2">
+                  {files.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <FileText className="w-4 h-4 text-gray-500" />
+                        <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                      </div>
+                      <button
+                        onClick={() => removeFile(file.name)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   ))}
                 </div>
               </div>
             )}
+
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-medium text-gray-700">1. User Registration & Onboarding</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <label className="flex items-center px-3 py-1 text-sm text-gray-600 hover:bg-gray-100 rounded cursor-pointer">
+                    <Upload className="w-4 h-4 mr-1" />
+                    Upload
+                    <input
+                      type="file"
+                      accept=".txt,.doc,.docx,.pdf"
+                      multiple
+                      onChange={handleFileUpload}
+                      className="hidden"
+                    />
+                  </label>
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <Settings className="w-4 h-4" />
+                  </button>
+                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              <textarea
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="Flow:
+
+User Sign-Up:
+
+Email & Password / OAuth Login (Google, LinkedIn, SSO)
+
+Two-Factor Authentication (2FA) setup
+
+Profile Setup:
+
+Basic Details: Name, Role, Organization, Compliance Level
+
+User Type Selection: Individual / Team / Developer"
+                className="w-full h-80 p-4 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm"
+              />
+
+              {/* Keywords Section */}
+              {keywords.length > 0 && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-medium text-gray-700">Select keywords</h4>
+                    <button
+                      onClick={() => setShowKeywords(!showKeywords)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
+                  {showKeywords && (
+                    <div className="flex flex-wrap gap-2">
+                      {keywords.map((keyword, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full cursor-pointer hover:bg-blue-200"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-gray-600">
+                  <span className="font-medium">{wordCount}</span> words
+                </div>
+                <button
+                  onClick={handleSummarize}
+                  disabled={!inputText.trim() || isProcessing}
+                  className="px-6 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                >
+                  {isProcessing ? (
+                    <>
+                      <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                      Summarizing...
+                    </>
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Summarize
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Output Section */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="p-6">
+              <div className="h-80 p-4 border border-gray-200 rounded-lg bg-gray-50 overflow-y-auto">
+                {summary ? (
+                  <div className="text-gray-900 leading-relaxed whitespace-pre-line text-sm">
+                    {summary}
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <FileText className="w-12 h-12 mx-auto mb-4" />
+                      <p className="text-sm">Summary will appear here</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {summary && (
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <span><span className="font-medium">{sentenceCount}</span> sentences</span>
+                    <span>•</span>
+                    <span><span className="font-medium">{summaryWordCount}</span> words</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={paraphraseSummary}
+                      className="px-4 py-2 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors text-sm"
+                    >
+                      Paraphrase Summary
+                    </button>
+                    <button
+                      onClick={handleCopy}
+                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Copy to clipboard"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={handleDownload}
+                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      title="Download as file"
+                    >
+                      <Download className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Bulk Summaries */}
+        {bulkSummaries.length > 0 && (
+          <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Bulk Summaries</h3>
+            <div className="space-y-3">
+              {bulkSummaries.map((item, index) => (
+                <div key={index} className="p-4 border border-gray-200 rounded-lg">
+                  <div className="font-medium text-gray-900 mb-2">{item.fileName}</div>
+                  <p className="text-sm text-gray-600">{item.summary}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      <style jsx>{`
+        .slider::-webkit-slider-thumb {
+          appearance: none;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #10b981;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .slider::-moz-range-thumb {
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          background: #10b981;
+          cursor: pointer;
+          border: 2px solid white;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+      `}</style>
     </div>
   );
 };
