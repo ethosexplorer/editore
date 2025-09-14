@@ -34,19 +34,24 @@ const AIDetectorPage: React.FC = () => {
   ];
 
   const handleAnalyze = async () => {
+    const wordCount = text.trim().split(/\s+/).filter(w => w).length;
     if (!text.trim() && files.length === 0) return;
+    if (wordCount < 40 && files.length === 0) {
+      alert('Please enter at least 40 words for analysis.');
+      return;
+    }
 
     setIsAnalyzing(true);
     setTimeout(() => {
       const newResult = {
         aiGeneratedRefined: Math.random() * 100,
         humanWrittenRefined: Math.random() * 100,
-        humanWritten: Math.random() * 100,
+        humanWritten: Math.random() * (100 - (Math.random() * 50)), // Ensure total doesn't exceed 100%
         sentences: text.split('.').filter(s => s.trim()).map((sentence, index) => ({
           text: sentence.trim(),
           aiGeneratedRefined: Math.random() * 100,
           humanWrittenRefined: Math.random() * 100,
-          humanWritten: Math.random() * 100,
+          humanWritten: Math.random() * (100 - (Math.random() * 50)),
           highlighted: Math.random() > 0.7
         }))
       };
@@ -58,7 +63,7 @@ const AIDetectorPage: React.FC = () => {
           fileName: file.name,
           aiGeneratedRefined: Math.random() * 100,
           humanWrittenRefined: Math.random() * 100,
-          humanWritten: Math.random() * 100,
+          humanWritten: Math.random() * (100 - (Math.random() * 50)),
         }));
         setBulkResult(bulkData);
       }
@@ -101,7 +106,9 @@ const AIDetectorPage: React.FC = () => {
 
         {/* Settings - Language */}
         <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-6 border border-gray-200 max-w-md mx-auto">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>Language</h3>
+          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center" style={{ fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, sans-serif' }}>
+            <Globe className="w-5 h-5 mr-2 text-blue-500" /> Language
+          </h3>
           <select
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
@@ -261,7 +268,7 @@ const AIDetectorPage: React.FC = () => {
                             <span className="font-bold text-blue-600">{item.aiGeneratedRefined.toFixed(0)}%</span>
                           </div>
                           <div className="mt-2 text-sm text-gray-600">
-                            AI-Generated & Refined: {item.aiGeneratedRefined.toFixed(1)}% • Human & Refined: {item.humanWrittenRefined.toFixed(1)}%
+                            AI-Generated & Refined: {item.aiGeneratedRefined.toFixed(1)}% • Human & Refined: {item.humanWrittenRefined.toFixed(1)}% • Human: {item.humanWritten.toFixed(1)}%
                           </div>
                         </div>
                       ))}
