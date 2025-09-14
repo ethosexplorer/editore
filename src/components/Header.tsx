@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Edit3, Menu, X } from 'lucide-react';
+import { Edit3 } from 'lucide-react';
 
 const Header: React.FC = () => {
   const [activeItem, setActiveItem] = useState('');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
 
   const menuItems = [
@@ -19,117 +18,52 @@ const Header: React.FC = () => {
     { name: 'Co-Writer', path: '/co-writer' }
   ];
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [location.pathname]);
-
-  // Prevent body scroll when mobile menu is open
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isMobileMenuOpen]);
-
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-
   return (
-    <>
-      <header className="header-container">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="logo-container z-50">
-            <div className="logo-icon">
-              <Edit3 className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-            </div>
-            <span className="logo-text">Editore</span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="nav-desktop">
-            {menuItems.map((item) => (
-              <Link
-                key={item.name}
-                to={item.path}
-                className={`nav-item ${location.pathname === item.path ? 'active' : ''}`}
-                onMouseEnter={() => setActiveItem(item.name)}
-                onMouseLeave={() => setActiveItem('')}
-              >
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Mobile Menu Button */}
-          <button 
-            onClick={toggleMobileMenu}
-            className="mobile-menu-button"
-            aria-label="Toggle menu"
-            aria-expanded={isMobileMenuOpen}
-          >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6 text-gray-700" />
-            ) : (
-              <Menu className="w-6 h-6 text-gray-700" />
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Menu Overlay */}
-      <div className={`mobile-menu-overlay ${isMobileMenuOpen ? 'open' : 'closed'}`}>
-        <div className="mobile-menu-backdrop" onClick={toggleMobileMenu} />
-        
-        {/* Mobile Menu Panel */}
-        <nav className={`mobile-menu-panel ${isMobileMenuOpen ? 'open' : ''}`}>
-          <div className="flex flex-col h-full">
-            {/* Header */}
-            <div className="mobile-menu-header">
-              <Link to="/" className="logo-container" onClick={toggleMobileMenu}>
-                <div className="logo-icon">
-                  <Edit3 className="w-5 h-5 text-white" />
-                </div>
-                <span className="logo-text">Editore</span>
-              </Link>
-            </div>
-
-            {/* Menu Items */}
-            <div className="mobile-menu-items">
-              {menuItems.map((item, index) => (
-                <Link
-                  key={item.name}
-                  to={item.path}
-                  className={`mobile-menu-item ${location.pathname === item.path ? 'active' : ''}`}
-                  onClick={toggleMobileMenu}
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <span>{item.name}</span>
-                  {location.pathname === item.path && (
-                    <div className="ml-auto w-2 h-2 bg-blue-600 rounded-full" />
-                  )}
-                </Link>
-              ))}
-            </div>
-
-            {/* Footer */}
-            <div className="mobile-menu-footer">
-              <p>AI-powered writing tools</p>
-            </div>
+    <header className="fixed top-0 left-0 right-0 z-50 h-20 bg-white/85 backdrop-blur-[10px] border-b border-black/5">
+      <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
+        {/* Logo */}
+        <Link to="/" className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-teal-400 rounded-lg flex items-center justify-center">
+            <Edit3 className="w-5 h-5 text-white" />
           </div>
-        </nav>
-      </div>
+          <span className="text-xl font-bold text-gray-900">Editore</span>
+        </Link>
 
-      {/* Header Spacer */}
-      <div className="header-spacer" />
-    </>
+        {/* Navigation */}
+        <nav className="hidden lg:flex items-center space-x-8">
+          {menuItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={`relative text-sm font-medium transition-all duration-300 group ${
+                location.pathname === item.path 
+                  ? 'text-blue-600' 
+                  : 'text-gray-700 hover:text-gray-900'
+              }`}
+              onMouseEnter={() => setActiveItem(item.name)}
+              onMouseLeave={() => setActiveItem('')}
+            >
+              {item.name}
+              <div className={`absolute -bottom-1 left-0 h-0.5 bg-gradient-to-r from-teal-400 to-blue-500 transition-all duration-300 ${
+                activeItem === item.name || location.pathname === item.path ? 'w-full' : 'w-0'
+              }`} />
+              <div className={`absolute inset-0 bg-gradient-to-r from-teal-400/10 to-blue-500/10 rounded-lg transition-all duration-300 ${
+                activeItem === item.name || location.pathname === item.path ? 'opacity-100' : 'opacity-0'
+              }`} />
+            </Link>
+          ))}
+        </nav>
+
+        {/* Mobile Menu Button */}
+        <button className="lg:hidden p-2">
+          <div className="w-6 h-6 flex flex-col justify-center space-y-1">
+            <div className="w-full h-0.5 bg-gray-700"></div>
+            <div className="w-full h-0.5 bg-gray-700"></div>
+            <div className="w-full h-0.5 bg-gray-700"></div>
+          </div>
+        </button>
+      </div>
+    </header>
   );
 };
 
