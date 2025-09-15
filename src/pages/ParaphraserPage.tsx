@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { RefreshCw, Copy, Download, Globe, Upload, FileText, Crown, CheckCircle, BookOpen, Lightbulb } from 'lucide-react';
+import { RefreshCw, Copy, Download, Globe, Upload, FileText, Crown, CheckCircle, BookOpen, Lightbulb, X, Menu } from 'lucide-react';
 
 const ParaphraserPage: React.FC = () => {
   const [inputText, setInputText] = useState('');
@@ -12,6 +12,7 @@ const ParaphraserPage: React.FC = () => {
   const [synonyms, setSynonyms] = useState<string[]>([]);
   const [isPremium, setIsPremium] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const outputRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -250,113 +251,130 @@ const ParaphraserPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-white" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <RefreshCw className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Paraphraser</h1>
-                <p className="text-sm text-gray-600">AI-powered text rephrasing for improved clarity and originality</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Paraphraser</h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI-powered text rephrasing for improved clarity and originality</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center">
-                <Globe className="w-4 h-4 mr-2" />
-                Integrations
+            <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
+              <button className="px-3 py-2 sm:px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center text-xs sm:text-sm">
+                <Globe className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">Integrations</span>
+                <span className="sm:hidden">Apps</span>
               </button>
               <button 
                 onClick={() => setIsPremium(!isPremium)}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors"
+                className="px-3 py-2 sm:px-4 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors text-xs sm:text-sm"
               >
-                {isPremium ? 'Free Version' : 'Upgrade to Premium'}
+                <span className="hidden sm:inline">{isPremium ? 'Free Version' : 'Upgrade to Premium'}</span>
+                <span className="sm:hidden">{isPremium ? 'Free' : 'Premium'}</span>
               </button>
             </div>
           </div>
         </div>
 
         {/* Settings Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2">
-                <Globe className="w-4 h-4 text-gray-600" />
-                <select 
-                  value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
-                >
-                  {languages.map(lang => (
-                    <option key={lang.id} value={lang.id}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Synonym Level:</span>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={synonymLevel}
-                  onChange={(e) => setSynonymLevel(Number(e.target.value))}
-                  className="w-20 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <span className="text-xs text-gray-500 min-w-max">{getSynonymLevelDescription()}</span>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-gray-700">Mode:</span>
-                <select
-                  value={mode}
-                  onChange={(e) => {
-                    const selectedMode = allModes.find(m => m.id === e.target.value);
-                    if (selectedMode?.premium && !isPremium) {
-                      setShowUpgradeModal(true);
-                    } else {
-                      setMode(e.target.value);
-                    }
-                  }}
-                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
-                >
-                  {allModes.map(modeOption => (
-                    <option key={modeOption.id} value={modeOption.id}>
-                      {modeOption.name} {modeOption.premium && !isPremium ? '(Premium)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-4 sm:mb-6">
+          <div className="flex items-center justify-between p-3 sm:p-4 lg:hidden">
+            <h3 className="text-sm font-medium text-gray-700">Settings</h3>
             <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+              onClick={() => setMobileSettingsOpen(!mobileSettingsOpen)}
+              className="p-2 text-gray-600 hover:text-gray-900"
             >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Document
+              {mobileSettingsOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
+          </div>
+          
+          <div className={`${mobileSettingsOpen ? 'block' : 'hidden'} lg:block p-3 sm:p-4`}>
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-4 sm:gap-6">
+                <div className="flex items-center space-x-2">
+                  <Globe className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                  <select 
+                    value={language}
+                    onChange={(e) => setLanguage(e.target.value)}
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 min-w-0"
+                  >
+                    {languages.map(lang => (
+                      <option key={lang.id} value={lang.id}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">Synonym Level:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={synonymLevel}
+                    onChange={(e) => setSynonymLevel(Number(e.target.value))}
+                    className="flex-1 sm:w-16 lg:w-20 h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-xs text-gray-500 min-w-max">{getSynonymLevelDescription()}</span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">Mode:</span>
+                  <select
+                    value={mode}
+                    onChange={(e) => {
+                      const selectedMode = allModes.find(m => m.id === e.target.value);
+                      if (selectedMode?.premium && !isPremium) {
+                        setShowUpgradeModal(true);
+                      } else {
+                        setMode(e.target.value);
+                      }
+                    }}
+                    className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 min-w-0"
+                  >
+                    {allModes.map(modeOption => (
+                      <option key={modeOption.id} value={modeOption.id}>
+                        {modeOption.name} {modeOption.premium && !isPremium ? '(Premium)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
+              >
+                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                <span className="hidden sm:inline">Upload Document</span>
+                <span className="sm:hidden">Upload</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Input Section */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Your Text</h2>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>{inputText.length} characters</span>
-                  <span>•</span>
-                  <span>{inputText.split(' ').filter(w => w.trim()).length} words</span>
+            <div className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Your Text</h2>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 sm:space-x-4">
+                    <span>{inputText.length} characters</span>
+                    <span>•</span>
+                    <span>{inputText.split(' ').filter(w => w.trim()).length} words</span>
+                  </div>
                   <button
                     onClick={handleParaphrase}
                     disabled={!inputText.trim() || isProcessing}
-                    className="px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center"
+                    className="w-full sm:w-auto px-4 py-2 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center text-xs sm:text-sm"
                   >
                     {isProcessing ? (
                       <>
@@ -366,7 +384,8 @@ const ParaphraserPage: React.FC = () => {
                     ) : (
                       <>
                         <RefreshCw className="w-4 h-4 mr-2" />
-                        Paraphrase
+                        <span className="hidden sm:inline">Paraphrase</span>
+                        <span className="sm:hidden">Process</span>
                       </>
                     )}
                   </button>
@@ -377,7 +396,7 @@ const ParaphraserPage: React.FC = () => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Type or paste your text here to rephrase for improved clarity, tone, and originality..."
-                className="w-full h-80 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               />
 
               <input
@@ -401,9 +420,9 @@ const ParaphraserPage: React.FC = () => {
           </div>
 
           {/* Output Panel */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Paraphrased Text</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Paraphrased Text</h2>
               {outputText && (
                 <div className="flex items-center space-x-2">
                   <button
@@ -436,14 +455,14 @@ const ParaphraserPage: React.FC = () => {
               <div className="space-y-4">
                 <div
                   ref={outputRef}
-                  className="p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-80 max-h-96 overflow-y-auto cursor-pointer"
+                  className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-60 sm:min-h-80 max-h-80 sm:max-h-96 overflow-y-auto cursor-pointer"
                   onClick={() => {
                     setSelectedWord(null);
                     setSynonyms([]);
                   }}
                 >
                   <div className="relative">
-                    <p className="text-gray-900 leading-relaxed">
+                    <p className="text-gray-900 leading-relaxed text-sm sm:text-base">
                       {outputText.split(' ').map((word, index) => (
                         <span
                           key={index}
@@ -477,17 +496,17 @@ const ParaphraserPage: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="text-sm text-gray-600">
+                <div className="text-xs sm:text-sm text-gray-600 space-y-1">
                   <div>Mode: {allModes.find(m => m.id === mode)?.name}</div>
                   <div>Language: {languages.find(l => l.id === language)?.name}</div>
                   <div>Creativity Level: {synonymLevel}%</div>
-                  <div className="text-xs text-blue-600 mt-1">💡 Click any word above for synonyms</div>
+                  <div className="text-xs text-blue-600 mt-2">💡 Click any word above for synonyms</div>
                 </div>
               </div>
             ) : (
               <div className="text-center text-gray-400 py-8">
-                <RefreshCw className="w-16 h-16 mx-auto mb-4" />
-                <p className="text-lg font-medium">Perfect Rephrasing!</p>
+                <RefreshCw className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4" />
+                <p className="text-base sm:text-lg font-medium">Perfect Rephrasing!</p>
                 <p className="text-sm">Your paraphrased text will appear here</p>
               </div>
             )}
@@ -497,17 +516,17 @@ const ParaphraserPage: React.FC = () => {
         {/* Upgrade Modal */}
         {showUpgradeModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-md w-full p-6">
+            <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
               <div className="text-center">
-                <Crown className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium Feature</h3>
-                <p className="text-gray-600 mb-6">
+                <Crown className="w-12 h-12 sm:w-16 sm:h-16 text-yellow-500 mx-auto mb-4" />
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Premium Feature</h3>
+                <p className="text-sm sm:text-base text-gray-600 mb-6">
                   This mode requires a premium subscription. Upgrade to access all 9 paraphrasing modes.
                 </p>
-                <div className="flex space-x-3">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                   <button
                     onClick={() => setShowUpgradeModal(false)}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm sm:text-base"
                   >
                     Cancel
                   </button>
@@ -517,7 +536,7 @@ const ParaphraserPage: React.FC = () => {
                       setShowUpgradeModal(false);
                       setMode(mode);
                     }}
-                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
                   >
                     Try Premium
                   </button>
@@ -528,27 +547,27 @@ const ParaphraserPage: React.FC = () => {
         )}
 
         {/* Features Section */}
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <RefreshCw className="w-6 h-6 text-blue-600" />
+        <div className="mt-8 sm:mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">9 Writing Modes</h3>
-            <p className="text-sm text-gray-600">From Standard to Creative - find the perfect tone</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">9 Writing Modes</h3>
+            <p className="text-xs sm:text-sm text-gray-600">From Standard to Creative - find the perfect tone</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Lightbulb className="w-6 h-6 text-purple-600" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Lightbulb className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Smart Synonyms</h3>
-            <p className="text-sm text-gray-600">Click any word for instant synonym suggestions</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Smart Synonyms</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Click any word for instant synonym suggestions</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-6 h-6 text-green-600" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">25+ Languages</h3>
-            <p className="text-sm text-gray-600">Support for global languages and English variants</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">25+ Languages</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Support for global languages and English variants</p>
           </div>
         </div>
       </div>
