@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Upload, FileText, AlertTriangle, CheckCircle, Zap, Globe, Info, Download, Eye, Shield, BarChart3, Brain, Cpu, User, Lock, Trash2 } from 'lucide-react';
+import { Search, Upload, FileText, AlertTriangle, CheckCircle, Zap, Globe, Info, Download, Eye, Shield, BarChart3, Brain, Cpu, User, Lock, Trash2, Menu, X } from 'lucide-react';
 
 interface AnalysisResult {
   overallScore: number;
@@ -32,6 +32,7 @@ const AIDetectorPage: React.FC = () => {
   const [language, setLanguage] = useState('en');
   const [showDetailedAnalysis, setShowDetailedAnalysis] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const languages = [
@@ -170,57 +171,61 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
   };
 
   const getScoreIcon = (score: number) => {
-    if (score >= 70) return <AlertTriangle className="w-6 h-6 text-red-600" />;
-    if (score >= 40) return <Info className="w-6 h-6 text-yellow-600" />;
-    return <CheckCircle className="w-6 h-6 text-green-600" />;
+    if (score >= 70) return <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />;
+    if (score >= 40) return <Info className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" />;
+    return <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                <Search className="w-6 h-6 text-white" />
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Search className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">AI Detector</h1>
-                <p className="text-sm text-gray-600">Identify AI-generated and AI-refined content with advanced semantic analysis</p>
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Detector</h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Identify AI-generated and AI-refined content with advanced semantic analysis</p>
               </div>
             </div>
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center space-x-2 text-sm">
-                <Shield className="w-4 h-4 text-green-500" />
-                <span className="text-green-600 font-medium">Privacy Protected</span>
+            <div className="flex items-center justify-between sm:justify-end space-x-3">
+              <div className="flex items-center space-x-2 text-xs sm:text-sm">
+                <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
+                <span className="text-green-600 font-medium hidden sm:inline">Privacy Protected</span>
+                <span className="text-green-600 font-medium sm:hidden">Protected</span>
               </div>
-              <button className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors">
-                Premium Features
+              <button className="px-3 py-2 sm:px-4 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors text-xs sm:text-sm">
+                <span className="hidden sm:inline">Premium Features</span>
+                <span className="sm:hidden">Premium</span>
               </button>
             </div>
           </div>
           
           {/* Privacy Notice */}
           <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-            <div className="flex items-center space-x-2">
-              <Lock className="w-4 h-4 text-green-600" />
-              <span className="text-sm text-green-800 font-medium">Privacy Mode Active:</span>
-              <span className="text-sm text-green-700">Your content is analyzed locally and never stored on our servers</span>
+            <div className="flex items-start sm:items-center space-x-2">
+              <Lock className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5 sm:mt-0" />
+              <div className="text-xs sm:text-sm">
+                <span className="text-green-800 font-medium">Privacy Mode Active: </span>
+                <span className="text-green-700">Your content is analyzed locally and never stored on our servers</span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Settings Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center space-x-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-6">
               <div className="flex items-center space-x-2">
                 <Globe className="w-4 h-4 text-gray-600" />
                 <select 
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500"
+                  className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 min-w-0"
                 >
                   {languages.map(lang => (
                     <option key={lang.id} value={lang.id}>
@@ -238,52 +243,54 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                   onChange={(e) => setShowDetailedAnalysis(e.target.checked)}
                   className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="detailed" className="text-sm text-gray-700">Show detailed analysis</label>
+                <label htmlFor="detailed" className="text-xs sm:text-sm text-gray-700">Show detailed analysis</label>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm transition-colors"
+                className="flex items-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
               >
-                <Upload className="w-4 h-4 mr-2" />
-                Bulk Upload
+                <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                <span className="hidden sm:inline">Bulk Upload</span>
+                <span className="sm:hidden">Upload</span>
               </button>
               
               {result && (
                 <button
                   onClick={downloadReport}
-                  className="flex items-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition-colors"
+                  className="flex items-center px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-xs sm:text-sm transition-colors"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Report
+                  <Download className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+                  <span className="hidden sm:inline">Download Report</span>
+                  <span className="sm:hidden">Report</span>
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Input Section */}
           <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
             {/* File Upload Area */}
             {files.length > 0 && (
-              <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
                 <h4 className="text-sm font-medium text-gray-700 mb-3">Uploaded Files ({files.length})</h4>
                 <div className="space-y-2 max-h-32 overflow-y-auto">
                   {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-white p-3 rounded-lg border">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                    <div key={index} className="flex items-center justify-between bg-white p-2 sm:p-3 rounded-lg border">
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                        <FileText className="w-4 h-4 text-gray-500 flex-shrink-0" />
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium text-gray-900 block truncate">{file.name}</span>
                           <div className="text-xs text-gray-500">{(file.size / 1024).toFixed(1)} KB</div>
                         </div>
                       </div>
                       <button
                         onClick={() => removeFile(index)}
-                        className="text-red-500 hover:text-red-700"
+                        className="text-red-500 hover:text-red-700 p-1 flex-shrink-0"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -293,7 +300,7 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
               </div>
             )}
 
-            <div className="p-6">
+            <div className="p-4 sm:p-6">
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">Text Analysis</h2>
                 <p className="text-sm text-gray-600">Paste content or upload documents for AI detection analysis</p>
@@ -303,7 +310,7 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder="Paste your text here to analyze for AI-generated content. Minimum 40 words required for accurate detection..."
-                className="w-full h-80 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base"
               />
 
               <input
@@ -315,8 +322,8 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 className="hidden"
               />
 
-              <div className="flex items-center justify-between mt-4">
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
+                <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-gray-600">
                   <span>{text.length} characters</span>
                   <span>•</span>
                   <span>{text.split(' ').filter(w => w.trim()).length} words</span>
@@ -330,7 +337,7 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 <button
                   onClick={handleAnalyze}
                   disabled={!text.trim() || isAnalyzing}
-                  className="px-6 py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-blue-500 text-white font-medium rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base w-full sm:w-auto"
                 >
                   {isAnalyzing ? (
                     <>
@@ -340,7 +347,8 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                   ) : (
                     <>
                       <Brain className="w-4 h-4 mr-2" />
-                      Detect AI Content
+                      <span className="hidden sm:inline">Detect AI Content</span>
+                      <span className="sm:hidden">Detect AI</span>
                     </>
                   )}
                 </button>
@@ -349,26 +357,26 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
 
             {/* Sentence-by-sentence Analysis */}
             {result && showDetailedAnalysis && (
-              <div className="p-6 pt-0">
-                <div className="border-t border-gray-200 pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                    <Eye className="w-5 h-5 mr-2" />
+              <div className="p-4 sm:p-6 pt-0">
+                <div className="border-t border-gray-200 pt-4 sm:pt-6">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                     Sentence Analysis
                   </h3>
-                  <div className="p-4 border border-gray-200 rounded-lg bg-gray-50 max-h-60 overflow-y-auto">
+                  <div className="p-3 sm:p-4 border border-gray-200 rounded-lg bg-gray-50 max-h-60 overflow-y-auto">
                     <div className="space-y-2 text-sm">
                       {result.sentences.map((sentence, index) => (
                         <div
                           key={index}
-                          className={`p-2 rounded ${
+                          className={`p-2 sm:p-3 rounded ${
                             sentence.highlighted 
                               ? 'bg-red-100 border-l-4 border-red-500' 
                               : 'bg-white'
                           }`}
                         >
-                          <div className="flex justify-between items-start mb-1">
-                            <span className="flex-1">{sentence.text}</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ml-2 ${
+                          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1 gap-2">
+                            <span className="flex-1 text-xs sm:text-sm">{sentence.text}</span>
+                            <span className={`text-xs px-2 py-1 rounded-full self-start ${
                               sentence.aiProbability > 70 ? 'bg-red-100 text-red-700' :
                               sentence.aiProbability > 40 ? 'bg-yellow-100 text-yellow-700' :
                               'bg-green-100 text-green-700'
@@ -377,7 +385,7 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                             </span>
                           </div>
                           {sentence.patterns.length > 0 && (
-                            <div className="text-xs text-gray-600">
+                            <div className="text-xs text-gray-600 mt-1">
                               Patterns: {sentence.patterns.join(', ')}
                             </div>
                           )}
@@ -391,13 +399,13 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
           </div>
 
           {/* Results Section */}
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-6">Detection Results</h2>
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4 sm:mb-6">Detection Results</h2>
             
             {!result ? (
-              <div className="flex flex-col items-center justify-center h-80 text-gray-400">
-                <Brain className="w-16 h-16 mb-4" />
-                <p className="text-center">Upload documents or enter text to analyze for AI-generated content</p>
+              <div className="flex flex-col items-center justify-center h-60 sm:h-80 text-gray-400">
+                <Brain className="w-12 h-12 sm:w-16 sm:h-16 mb-4" />
+                <p className="text-center text-sm sm:text-base px-4">Upload documents or enter text to analyze for AI-generated content</p>
                 <div className="mt-4 text-xs text-gray-500 space-y-1">
                   <div className="flex items-center justify-center"><Shield className="w-3 h-3 mr-1" />Privacy protected analysis</div>
                   <div className="flex items-center justify-center"><BarChart3 className="w-3 h-3 mr-1" />Detailed semantic scoring</div>
@@ -405,16 +413,16 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 </div>
               </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Overall AI Score */}
-                <div className={`p-6 rounded-lg border-2 ${getScoreColor(result.overallScore)}`}>
+                <div className={`p-4 sm:p-6 rounded-lg border-2 ${getScoreColor(result.overallScore)}`}>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
                       {getScoreIcon(result.overallScore)}
-                      <span className="ml-2 font-semibold">Overall AI Detection</span>
+                      <span className="ml-2 font-semibold text-sm sm:text-base">Overall AI Detection</span>
                     </div>
                     <div className="text-right">
-                      <div className="text-2xl font-bold">
+                      <div className="text-xl sm:text-2xl font-bold">
                         {result.overallScore.toFixed(1)}%
                       </div>
                       <div className="text-xs opacity-75">AI-influenced</div>
@@ -432,14 +440,14 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 </div>
 
                 {/* Category Breakdown */}
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {/* AI Generated */}
-                  <div className="flex items-center space-x-4 p-4 bg-red-50 rounded-lg border border-red-200">
-                    <Cpu className="w-5 h-5 text-red-500" />
-                    <div className="flex-1">
+                  <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-red-50 rounded-lg border border-red-200">
+                    <Cpu className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-900">AI-Generated Content</span>
-                        <span className="text-lg font-bold text-red-600">{result.aiGenerated.toFixed(1)}%</span>
+                        <span className="font-medium text-gray-900 text-sm sm:text-base">AI-Generated Content</span>
+                        <span className="text-base sm:text-lg font-bold text-red-600">{result.aiGenerated.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-red-200 rounded-full h-2">
                         <div 
@@ -451,12 +459,12 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                   </div>
 
                   {/* AI Refined */}
-                  <div className="flex items-center space-x-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                    <Brain className="w-5 h-5 text-yellow-500" />
-                    <div className="flex-1">
+                  <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                    <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-900">AI-Refined Content</span>
-                        <span className="text-lg font-bold text-yellow-600">{result.aiRefined.toFixed(1)}%</span>
+                        <span className="font-medium text-gray-900 text-sm sm:text-base">AI-Refined Content</span>
+                        <span className="text-base sm:text-lg font-bold text-yellow-600">{result.aiRefined.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-yellow-200 rounded-full h-2">
                         <div 
@@ -468,12 +476,12 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                   </div>
 
                   {/* Human Written */}
-                  <div className="flex items-center space-x-4 p-4 bg-green-50 rounded-lg border border-green-200">
-                    <User className="w-5 h-5 text-green-500" />
-                    <div className="flex-1">
+                  <div className="flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 bg-green-50 rounded-lg border border-green-200">
+                    <User className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-center mb-2">
-                        <span className="font-medium text-gray-900">Human-Written Content</span>
-                        <span className="text-lg font-bold text-green-600">{result.humanWritten.toFixed(1)}%</span>
+                        <span className="font-medium text-gray-900 text-sm sm:text-base">Human-Written Content</span>
+                        <span className="text-base sm:text-lg font-bold text-green-600">{result.humanWritten.toFixed(1)}%</span>
                       </div>
                       <div className="w-full bg-green-200 rounded-full h-2">
                         <div 
@@ -486,12 +494,12 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 </div>
 
                 {/* Semantic Analysis */}
-                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                  <h4 className="font-medium text-blue-900 mb-3 flex items-center">
+                <div className="bg-blue-50 rounded-lg p-3 sm:p-4 border border-blue-200">
+                  <h4 className="font-medium text-blue-900 mb-3 flex items-center text-sm sm:text-base">
                     <BarChart3 className="w-4 h-4 mr-2" />
                     Semantic Analysis
                   </h4>
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                     <div className="flex justify-between">
                       <span className="text-blue-700">Predictability:</span>
                       <span className="font-medium text-blue-800">{result.predictabilityScore.toFixed(0)}%</span>
@@ -505,9 +513,9 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
 
                 {/* Detailed Analysis */}
                 {showDetailedAnalysis && (
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <h4 className="font-medium text-gray-900 mb-3">Detailed Metrics</h4>
-                    <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="bg-gray-50 rounded-lg p-3 sm:p-4 border border-gray-200">
+                    <h4 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Detailed Metrics</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 text-xs sm:text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-600">Vocabulary Diversity:</span>
                         <span className="font-medium">{result.detailedAnalysis.vocabulary.toFixed(0)}%</span>
@@ -529,13 +537,14 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 )}
 
                 {/* Statistics */}
+                {/* Statistics */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">{result.wordCount}</div>
+                    <div className="text-base sm:text-lg font-bold text-gray-900">{result.wordCount}</div>
                     <div className="text-xs text-gray-600">Words Analyzed</div>
                   </div>
                   <div className="text-center p-3 bg-gray-50 rounded-lg">
-                    <div className="text-lg font-bold text-gray-900">{result.sentences.length}</div>
+                    <div className="text-base sm:text-lg font-bold text-gray-900">{result.sentences.length}</div>
                     <div className="text-xs text-gray-600">Sentences</div>
                   </div>
                 </div>
@@ -544,14 +553,14 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
 
             {/* Bulk Results */}
             {bulkResults.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-4">Bulk Analysis Results</h3>
+              <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200">
+                <h3 className="font-semibold text-gray-900 mb-4 text-sm sm:text-base">Bulk Analysis Results</h3>
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {bulkResults.map((item, index) => (
                     <div key={index} className="p-3 border border-gray-200 rounded-lg">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-medium text-gray-900 text-sm truncate">{item.fileName}</span>
-                        <span className="text-lg font-bold text-blue-600">{item.result.overallScore.toFixed(0)}%</span>
+                        <span className="font-medium text-gray-900 text-sm truncate mr-2">{item.fileName}</span>
+                        <span className="text-base sm:text-lg font-bold text-blue-600 flex-shrink-0">{item.result.overallScore.toFixed(0)}%</span>
                       </div>
                       <div className="text-xs text-gray-600 space-y-1">
                         <div className="flex justify-between">
@@ -576,27 +585,27 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
         </div>
 
         {/* Features Section */}
-        <div className="mt-12 grid md:grid-cols-3 gap-6">
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Brain className="w-6 h-6 text-blue-600" />
+        <div className="mt-8 sm:mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Advanced Detection</h3>
-            <p className="text-sm text-gray-600">Semantic analysis identifies AI patterns and predictability in writing</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Advanced Detection</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Semantic analysis identifies AI patterns and predictability in writing</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <FileText className="w-6 h-6 text-green-600" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Bulk Processing</h3>
-            <p className="text-sm text-gray-600">Upload multiple documents for comprehensive analysis reports</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Bulk Processing</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Upload multiple documents for comprehensive analysis reports</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Shield className="w-6 h-6 text-purple-600" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Privacy Protected</h3>
-            <p className="text-sm text-gray-600">No content stored on servers for complete privacy</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Privacy Protected</h3>
+            <p className="text-xs sm:text-sm text-gray-600">No content stored on servers for complete privacy</p>
           </div>
         </div>
       </div>
