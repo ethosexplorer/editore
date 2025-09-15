@@ -72,7 +72,7 @@ const HeroSection: React.FC = () => {
       {/* Spider Crawl Animation Background */}
       <SpiderCrawlAnimation />
       
-      {/* Animated Light Beams */}
+      {/* Animated Light Beams - Responsive positioning */}
       <motion.div 
         className="absolute inset-0 opacity-20"
         initial={{ opacity: 0 }}
@@ -80,7 +80,7 @@ const HeroSection: React.FC = () => {
         transition={{ duration: 3 }}
       >
         <motion.div 
-          className="absolute top-1/4 left-1/4 w-96 h-1 bg-gradient-to-r from-transparent via-[#3a86ff] to-transparent transform rotate-45"
+          className="absolute top-1/4 left-1/4 w-48 sm:w-64 md:w-80 lg:w-96 h-1 bg-gradient-to-r from-transparent via-[#3a86ff] to-transparent transform rotate-45"
           animate={{
             opacity: [0.3, 0.8, 0.3],
             scaleX: [0.8, 1.2, 0.8]
@@ -92,7 +92,7 @@ const HeroSection: React.FC = () => {
           }}
         />
         <motion.div 
-          className="absolute bottom-1/3 right-1/4 w-96 h-1 bg-gradient-to-r from-transparent via-[#00c896] to-transparent transform -rotate-45"
+          className="absolute bottom-1/3 right-1/4 w-48 sm:w-64 md:w-80 lg:w-96 h-1 bg-gradient-to-r from-transparent via-[#00c896] to-transparent transform -rotate-45"
           animate={{
             opacity: [0.3, 0.8, 0.3],
             scaleX: [0.8, 1.2, 0.8]
@@ -106,20 +106,20 @@ const HeroSection: React.FC = () => {
         />
       </motion.div>
 
-      {/* Floating Elements */}
+      {/* Floating Elements - Responsive sizes and positioning */}
       <motion.div 
-        className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-r from-[#3a86ff] to-[#00c896] rounded-full opacity-20"
+        className="absolute top-10 sm:top-20 left-5 sm:left-10 w-12 sm:w-16 md:w-20 h-12 sm:h-16 md:h-20 bg-gradient-to-r from-[#3a86ff] to-[#00c896] rounded-full opacity-20"
         variants={floatingVariants}
         animate="animate"
       />
       <motion.div 
-        className="absolute bottom-20 right-10 w-16 h-16 bg-gradient-to-r from-[#00c896] to-[#3a86ff] rounded-full opacity-20"
+        className="absolute bottom-10 sm:bottom-20 right-5 sm:right-10 w-10 sm:w-12 md:w-16 h-10 sm:h-12 md:h-16 bg-gradient-to-r from-[#00c896] to-[#3a86ff] rounded-full opacity-20"
         variants={floatingVariants}
         animate="animate"
         transition={{ delay: 1 }}
       />
       <motion.div 
-        className="absolute top-1/2 left-5 w-12 h-12 bg-gradient-to-r from-[#3a86ff]/30 to-[#00c896]/30 rounded-full opacity-30"
+        className="absolute top-1/2 left-2 sm:left-5 w-8 sm:w-10 md:w-12 h-8 sm:h-10 md:h-12 bg-gradient-to-r from-[#3a86ff]/30 to-[#00c896]/30 rounded-full opacity-30"
         animate={{
           scale: [1, 1.2, 1],
           opacity: [0.3, 0.6, 0.3]
@@ -131,16 +131,16 @@ const HeroSection: React.FC = () => {
         }}
       />
 
-      {/* Main Content */}
+      {/* Main Content - Responsive padding and max-width */}
       <motion.div 
-        className="relative z-10 max-w-4xl mx-auto px-6 text-center"
+        className="relative z-10 w-full max-w-xs sm:max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto px-4 sm:px-6 md:px-8 text-center"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Powered by AI Badge */}
+        {/* Powered by AI Badge - Responsive sizing */}
         <motion.div 
-          className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-[#00c896]/20 mb-8"
+          className="inline-flex items-center px-3 sm:px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-[#00c896]/20 mb-6 sm:mb-8"
           variants={itemVariants}
         >
           <motion.div 
@@ -155,14 +155,14 @@ const HeroSection: React.FC = () => {
               ease: "easeInOut"
             }}
           />
-          <span className="text-sm font-medium text-[#1a1a1a]">⚡ Powered by Advanced AI</span>
+          <span className="text-xs sm:text-sm font-medium text-[#1a1a1a]">⚡ Powered by Advanced AI</span>
         </motion.div>
 
-        {/* Animated Headline */}
-        <motion.div className="mb-6" variants={itemVariants}>
+        {/* Animated Headline - Responsive text sizes */}
+        <motion.div className="mb-4 sm:mb-6" variants={itemVariants}>
           <motion.h1 
-            className="text-5xl md:text-6xl font-bold text-[#1a1a1a] mb-6 leading-tight"
-            style={{ letterSpacing: '-0.96px' }}
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-[#1a1a1a] mb-4 sm:mb-6 leading-tight px-2 sm:px-0"
+            style={{ letterSpacing: '-0.02em' }}
           >
             <motion.span
               key={currentPhrase}
@@ -184,22 +184,22 @@ const HeroSection: React.FC = () => {
           </motion.h1>
         </motion.div>
 
-        {/* Subtitle */}
+        {/* Subtitle - Responsive text and spacing */}
         <motion.p 
-          className="text-xl text-[#4a4a4a] max-w-2xl mx-auto leading-relaxed mb-12"
+          className="text-base sm:text-lg md:text-xl lg:text-xl text-[#4a4a4a] max-w-sm sm:max-w-lg md:max-w-2xl mx-auto leading-relaxed mb-8 sm:mb-10 md:mb-12 px-2 sm:px-0"
           variants={itemVariants}
         >
           Transform your writing process with cutting-edge AI technology. 
           From grammar checking to content generation, experience the future of writing.
         </motion.p>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Responsive layout and sizing */}
         <motion.div 
-          className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16"
+          className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-8 sm:mb-12 md:mb-16 px-4 sm:px-0"
           variants={itemVariants}
         >
           <motion.button 
-            className="group relative px-8 py-4 bg-gradient-to-r from-[#3a86ff] to-[#00c896] text-white font-semibold rounded-full overflow-hidden shadow-lg"
+            className="group relative w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 bg-gradient-to-r from-[#3a86ff] to-[#00c896] text-white font-semibold rounded-full overflow-hidden shadow-lg text-sm sm:text-base"
             variants={buttonVariants}
             whileHover="hover"
             whileTap="tap"
@@ -210,43 +210,43 @@ const HeroSection: React.FC = () => {
               whileHover={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.3 }}
             />
-            <span className="relative z-10 flex items-center">
+            <span className="relative z-10 flex items-center justify-center">
               Try Editore Free
               <motion.div
                 className="ml-2"
                 animate={{ x: [0, 4, 0] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
-                <ArrowRight className="w-5 h-5" />
+                <ArrowRight className="w-4 sm:w-5 h-4 sm:h-5" />
               </motion.div>
             </span>
           </motion.button>
           
           <motion.button 
-            className="group px-8 py-4 border-2 border-[#3a86ff]/30 text-[#1a1a1a] font-semibold rounded-full transition-all duration-300 hover:border-[#00c896] hover:bg-[#00c896]/5 hover:shadow-lg backdrop-blur-sm"
+            className="group w-full sm:w-auto px-6 sm:px-8 py-3 sm:py-4 border-2 border-[#3a86ff]/30 text-[#1a1a1a] font-semibold rounded-full transition-all duration-300 hover:border-[#00c896] hover:bg-[#00c896]/5 hover:shadow-lg backdrop-blur-sm text-sm sm:text-base"
             variants={buttonVariants}
             whileHover="hover"
             whileTap="tap"
           >
-            <span className="flex items-center">
+            <span className="flex items-center justify-center">
               <motion.div
-                className="mr-2 w-6 h-6 border-2 border-[#3a86ff] rounded-full flex items-center justify-center"
+                className="mr-2 w-5 sm:w-6 h-5 sm:h-6 border-2 border-[#3a86ff] rounded-full flex items-center justify-center"
                 whileHover={{ 
                   borderColor: "#00c896",
                   backgroundColor: "#00c896",
                   color: "#ffffff"
                 }}
               >
-                <Play className="w-3 h-3 ml-0.5" />
+                <Play className="w-2.5 sm:w-3 h-2.5 sm:h-3 ml-0.5" />
               </motion.div>
               Explore Features
             </span>
           </motion.button>
         </motion.div>
 
-        {/* Feature Highlights */}
+        {/* Feature Highlights - Responsive grid and sizing */}
         <motion.div 
-          className="grid md:grid-cols-3 gap-6 max-w-3xl mx-auto"
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 max-w-xs sm:max-w-lg md:max-w-2xl lg:max-w-3xl mx-auto px-2 sm:px-0"
           variants={itemVariants}
         >
           {[
@@ -256,7 +256,7 @@ const HeroSection: React.FC = () => {
           ].map((feature, index) => (
             <motion.div
               key={index}
-              className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/20 shadow-lg"
+              className="bg-white/60 backdrop-blur-sm rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/20 shadow-lg"
               whileHover={{
                 scale: 1.05,
                 backgroundColor: "rgba(255, 255, 255, 0.8)",
@@ -265,7 +265,7 @@ const HeroSection: React.FC = () => {
               transition={{ duration: 0.3 }}
             >
               <motion.div 
-                className="text-3xl mb-3"
+                className="text-2xl sm:text-3xl mb-2 sm:mb-3"
                 animate={{ 
                   rotate: [0, 10, -10, 0],
                   scale: [1, 1.1, 1]
@@ -278,32 +278,40 @@ const HeroSection: React.FC = () => {
               >
                 {feature.icon}
               </motion.div>
-              <h3 className="font-semibold text-[#1a1a1a] mb-2">{feature.title}</h3>
-              <p className="text-sm text-[#4a4a4a]">{feature.desc}</p>
+              <h3 className="font-semibold text-[#1a1a1a] mb-1 sm:mb-2 text-sm sm:text-base">{feature.title}</h3>
+              <p className="text-xs sm:text-sm text-[#4a4a4a] leading-relaxed">{feature.desc}</p>
             </motion.div>
           ))}
         </motion.div>
       </motion.div>
 
-      {/* Scroll Indicator */}
+      {/* Scroll Indicator - Hidden on mobile */}
       <motion.div 
-        className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+        className="absolute bottom-6 sm:bottom-8 left-1/2 transform -translate-x-1/2 hidden sm:block"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 2, duration: 1 }}
       >
         <motion.div
-          className="w-6 h-10 border-2 border-[#3a86ff]/30 rounded-full flex justify-center"
+          className="w-5 sm:w-6 h-8 sm:h-10 border-2 border-[#3a86ff]/30 rounded-full flex justify-center"
           animate={{ borderColor: ["rgba(58, 134, 255, 0.3)", "rgba(0, 200, 150, 0.6)", "rgba(58, 134, 255, 0.3)"] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
           <motion.div
-            className="w-1 h-3 bg-[#00c896] rounded-full mt-2"
-            animate={{ y: [0, 12, 0] }}
+            className="w-1 h-2 sm:h-3 bg-[#00c896] rounded-full mt-2"
+            animate={{ y: [0, 8, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
           />
         </motion.div>
       </motion.div>
+
+      {/* Add CSS for gradient animation */}
+      <style jsx>{`
+        @keyframes gradient-shift {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+      `}</style>
     </section>
   );
 };
