@@ -1,326 +1,427 @@
 "use client"
 
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { Edit, Lightbulb, Zap, Save, Download, Settings, Users } from "lucide-react"
+import { useState } from "react"
+import { SuperDoc } from "superdoc"
+import {
+  FileText,
+  BookOpen,
+  Search,
+  CheckCircle,
+  Users,
+  Download,
+  Brain,
+  Target,
+  BarChart3,
+  Shield,
+  Lightbulb,
+  Quote,
+  Settings,
+  Edit3,
+  Eye,
+  Sparkles,
+  RefreshCw,
+  Star,
+  Save,
+  Undo,
+  Redo,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List,
+  ListOrdered,
+  X,
+  Home,
+  Layout,
+  Type,
+  HelpCircle,
+  Copy,
+  Scissors,
+  Clipboard,
+  User,
+  Upload,
+} from "lucide-react"
 
-interface Suggestion {
-  id: number
-  type: "completion" | "improvement" | "idea"
-  text: string
-  position: number
-}
+function CoWriterPage() {
+  const [activeTab, setActiveTab] = useState("Home")
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const [selectedText, setSelectedText] = useState("")
+  const [grammarChecking, setGrammarChecking] = useState(true)
+  const [docContent, setDocContent] = useState(null)
+  const [fileName, setFileName] = useState("document.docx")
 
-const CoWriterPage: React.FC = () => {
-  const [content, setContent] = useState("")
-  const [suggestions, setSuggestions] = useState<Suggestion[]>([])
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [writingMode, setWritingMode] = useState("creative")
-  const [selectedSuggestion, setSelectedSuggestion] = useState<Suggestion | null>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0]
+    if (file) {
+      setFileName(file.name)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setDocContent(e.target.result)
+      }
+      reader.readAsArrayBuffer(file)
+    }
+  }
 
-  const writingModes = [
-    { id: "creative", name: "Creative", description: "Imaginative and expressive writing" },
-    { id: "professional", name: "Professional", description: "Business and formal writing" },
-    { id: "academic", name: "Academic", description: "Research and scholarly writing" },
-    { id: "casual", name: "Casual", description: "Conversational and informal writing" },
+  const handleSave = (doc) => {
+    const blob = new Blob([doc], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = fileName
+    link.click()
+    URL.revokeObjectURL(url)
+    console.log("Document saved:", fileName)
+  }
+
+  const menuTabs = [
+    { name: "File", icon: FileText },
+    { name: "Home", icon: Home },
+    { name: "Insert", icon: Layout },
+    { name: "Layout", icon: Type },
+    { name: "References", icon: Quote },
+    { name: "Review", icon: Eye },
+    { name: "View", icon: Settings },
+    { name: "Help", icon: HelpCircle },
+    { name: "ResearchBot", icon: Brain, special: true },
   ]
 
-  const generateSuggestions = async () => {
-    if (!content.trim()) return
+  const homeTools = [
+    { name: "Save", icon: Save, group: "file" },
+    { name: "Upload", icon: Upload, group: "file" },
+    { name: "Undo", icon: Undo, group: "edit" },
+    { name: "Redo", icon: Redo, group: "edit" },
+    { name: "Copy", icon: Copy, group: "clipboard" },
+    { name: "Cut", icon: Scissors, group: "clipboard" },
+    { name: "Paste", icon: Clipboard, group: "clipboard" },
+    { name: "Bold", icon: Bold, group: "format" },
+    { name: "Italic", icon: Italic, group: "format" },
+    { name: "Underline", icon: Underline, group: "format" },
+    { name: "Left", icon: AlignLeft, group: "align" },
+    { name: "Center", icon: AlignCenter, group: "align" },
+    { name: "Right", icon: AlignRight, group: "align" },
+    { name: "Bullets", icon: List, group: "list" },
+    { name: "Numbers", icon: ListOrdered, group: "list" },
+  ]
 
-    setIsGenerating(true)
-    // Simulate AI suggestions
-    setTimeout(() => {
-      const mockSuggestions: Suggestion[] = [
-        {
-          id: 1,
-          type: "completion",
-          text: "Furthermore, this approach allows for greater flexibility in implementation.",
-          position: content.length,
-        },
-        {
-          id: 2,
-          type: "improvement",
-          text: "Consider rephrasing this sentence for better clarity.",
-          position: Math.max(0, content.length - 50),
-        },
-        {
-          id: 3,
-          type: "idea",
-          text: "You might want to add an example here to illustrate your point.",
-          position: content.length,
-        },
-      ]
-      setSuggestions(mockSuggestions)
-      setIsGenerating(false)
-    }, 1500)
-  }
+  const researchBotTools = [
+    {
+      name: "Paper Templates",
+      icon: FileText,
+      description: "Pre-structured sections with AI guidance",
+      color: "bg-blue-500",
+    },
+    { name: "Tone Optimizer", icon: Edit3, description: "Convert to formal academic style", color: "bg-green-500" },
+    { name: "Paraphraser", icon: RefreshCw, description: "Plagiarism-safe rewriting", color: "bg-purple-500" },
+    { name: "Citations", icon: Quote, description: "Auto-generate APA, MLA, IEEE formats", color: "bg-indigo-500" },
+    {
+      name: "Literature Summarizer",
+      icon: BookOpen,
+      description: "Extract key findings from PDFs",
+      color: "bg-teal-500",
+    },
+    {
+      name: "Citation Finder",
+      icon: Search,
+      description: "Find relevant papers automatically",
+      color: "bg-orange-500",
+    },
+    { name: "Title Generator", icon: Sparkles, description: "AI-suggested titles and abstracts", color: "bg-pink-500" },
+    { name: "Results Helper", icon: BarChart3, description: "Convert results to discussion", color: "bg-cyan-500" },
+    { name: "Format Export", icon: Download, description: "Export to journal templates", color: "bg-emerald-500" },
+    { name: "Grammar Check", icon: CheckCircle, description: "Academic-focused corrections", color: "bg-red-500" },
+    { name: "Track Changes", icon: Eye, description: "Show AI edits with accept/reject", color: "bg-violet-500" },
+    { name: "Collaboration", icon: Users, description: "Real-time co-writing", color: "bg-amber-500" },
+  ]
 
-  const applySuggestion = (suggestion: Suggestion) => {
-    if (suggestion.type === "completion") {
-      setContent(content + " " + suggestion.text)
-    } else if (suggestion.type === "improvement") {
-      // For demo purposes, just append the suggestion
-      setContent(content + " [Improved: " + suggestion.text + "]")
-    }
-    setSuggestions(suggestions.filter((s) => s.id !== suggestion.id))
-    setSelectedSuggestion(null)
-  }
+  const premiumTools = [
+    {
+      name: "Research Gaps",
+      icon: Target,
+      description: "Identify unstudied areas",
+      color: "bg-rose-500",
+      premium: true,
+    },
+    {
+      name: "Hypothesis Generator",
+      icon: Lightbulb,
+      description: "AI research questions",
+      color: "bg-lime-500",
+      premium: true,
+    },
+    {
+      name: "Data Interpreter",
+      icon: Brain,
+      description: "Generate analysis text",
+      color: "bg-sky-500",
+      premium: true,
+    },
+    {
+      name: "Plagiarism Check",
+      icon: Shield,
+      description: "Similarity index checker",
+      color: "bg-slate-500",
+      premium: true,
+    },
+  ]
 
-  const handleSave = () => {
-    localStorage.setItem("cowriter-content", content)
-    alert("Content saved locally!")
-  }
-
-  const handleDownload = () => {
-    const blob = new Blob([content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "co-writer-document.txt"
-    a.click()
-  }
-
-  useEffect(() => {
-    // Load saved content
-    const saved = localStorage.getItem("cowriter-content")
-    if (saved) {
-      setContent(saved)
-    }
-  }, [])
-
-  const getSuggestionIcon = (type: string) => {
-    switch (type) {
-      case "completion":
-        return <Edit className="w-4 h-4" />
-      case "improvement":
-        return <Zap className="w-4 h-4" />
-      case "idea":
-        return <Lightbulb className="w-4 h-4" />
-      default:
-        return <Edit className="w-4 h-4" />
-    }
-  }
-
-  const getSuggestionColor = (type: string) => {
-    switch (type) {
-      case "completion":
-        return "border-blue-200 bg-blue-50 text-blue-700"
-      case "improvement":
-        return "border-green-200 bg-green-50 text-green-700"
-      case "idea":
-        return "border-yellow-200 bg-yellow-50 text-yellow-700"
-      default:
-        return "border-gray-200 bg-gray-50 text-gray-700"
-    }
-  }
+  const ToolGroup = ({ title, tools, className = "" }) => (
+    <div className={`border-r border-gray-200 px-2 ${className}`}>
+      <div className="text-xs text-gray-600 mb-1 font-medium">{title}</div>
+      <div className="flex space-x-1">
+        {tools.map((tool, index) => (
+          <button
+            key={index}
+            className="p-2 hover:bg-gray-100 rounded transition-colors flex flex-col items-center min-w-[40px]"
+            title={tool.name}
+            onClick={() => {
+              if (tool.name === "Upload") {
+                document.getElementById("file-upload")?.click()
+              } else if (tool.name === "Save") {
+                document.querySelector(".superdoc-save")?.click()
+              }
+            }}
+          >
+            <tool.icon size={16} className="text-gray-700" />
+          </button>
+        ))}
+      </div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 to-purple-100">
-      <div className="max-w-7xl mx-auto px-6 py-12">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-violet-500 to-purple-600 rounded-2xl mb-6">
-            <Edit className="w-8 h-8 text-white" />
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <input id="file-upload" type="file" accept=".docx" onChange={handleFileUpload} className="hidden" />
+
+      <div className="bg-blue-600 text-white px-4 py-1 flex items-center justify-between text-sm">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="bg-white text-blue-600 p-1 rounded">
+              <Brain size={16} />
+            </div>
+            <span className="font-semibold">Editore ResearchBot AI</span>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">AI Co-Writer</h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            AI-powered writing assistant for collaborative content creation. Get real-time suggestions, improvements,
-            and creative ideas.
-          </p>
-        </div>
-
-        {/* Toolbar */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <Settings className="w-5 h-5 text-gray-600 mr-2" />
-                <span className="text-sm font-medium text-gray-700">Writing Mode:</span>
-              </div>
-              <select
-                value={writingMode}
-                onChange={(e) => setWritingMode(e.target.value)}
-                className="px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
-              >
-                {writingModes.map((mode) => (
-                  <option key={mode.id} value={mode.id}>
-                    {mode.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleSave}
-                className="flex items-center px-4 py-2 text-gray-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </button>
-              <button
-                onClick={handleDownload}
-                className="flex items-center px-4 py-2 text-gray-600 hover:text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </button>
-              <button
-                onClick={generateSuggestions}
-                disabled={!content.trim() || isGenerating}
-                className="flex items-center px-6 py-2 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-lg hover:scale-105 transition-all duration-300 disabled:opacity-50"
-              >
-                {isGenerating ? (
-                  <>
-                    <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="w-4 h-4 mr-2" />
-                    Get Suggestions
-                  </>
-                )}
-              </button>
-            </div>
+          <span>•</span>
+          <span>{fileName}</span>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="text-xs">Saved</span>
           </div>
         </div>
-
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Writing Area */}
-          <div className="lg:col-span-3 bg-white rounded-3xl shadow-xl p-8">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">Your Document</h2>
-              <div className="flex items-center space-x-4 text-sm text-gray-500">
-                <span>{content.length} characters</span>
-                <span>{content.split(" ").filter((w) => w).length} words</span>
-                <span>{content.split("\n").length} lines</span>
-              </div>
-            </div>
-
-            <textarea
-              ref={textareaRef}
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Start writing your content here. The AI will provide suggestions and help you improve your writing as you go..."
-              className="w-full h-96 p-6 border border-gray-200 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent text-lg leading-relaxed"
-            />
-
-            {/* Writing Stats */}
-            <div className="mt-6 grid grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-violet-50 rounded-xl">
-                <div className="text-lg font-bold text-violet-600">
-                  {Math.ceil(content.split(" ").filter((w) => w).length / 200)}
-                </div>
-                <div className="text-xs text-violet-600">Pages</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-xl">
-                <div className="text-lg font-bold text-purple-600">
-                  {content.split(".").filter((s) => s.trim()).length}
-                </div>
-                <div className="text-xs text-purple-600">Sentences</div>
-              </div>
-              <div className="text-center p-3 bg-blue-50 rounded-xl">
-                <div className="text-lg font-bold text-blue-600">
-                  {content.split("\n\n").filter((p) => p.trim()).length}
-                </div>
-                <div className="text-xs text-blue-600">Paragraphs</div>
-              </div>
-              <div className="text-center p-3 bg-green-50 rounded-xl">
-                <div className="text-lg font-bold text-green-600">
-                  {Math.ceil(content.split(" ").filter((w) => w).length / 200)}
-                </div>
-                <div className="text-xs text-green-600">Read Time (min)</div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Suggestions Panel */}
-          <div className="bg-white rounded-3xl shadow-xl p-8">
-            <div className="flex items-center mb-6">
-              <Users className="w-6 h-6 text-violet-600 mr-2" />
-              <h2 className="text-xl font-bold text-gray-900">AI Suggestions</h2>
-            </div>
-
-            {suggestions.length === 0 ? (
-              <div className="text-center text-gray-400 py-12">
-                <Lightbulb className="w-12 h-12 mx-auto mb-4" />
-                <p className="text-sm">Write some content and click "Get Suggestions" to see AI recommendations</p>
-              </div>
-            ) : (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {suggestions.map((suggestion) => (
-                  <div
-                    key={suggestion.id}
-                    className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-300 ${getSuggestionColor(suggestion.type)} ${
-                      selectedSuggestion?.id === suggestion.id ? "ring-2 ring-violet-500" : ""
-                    }`}
-                    onClick={() => setSelectedSuggestion(suggestion)}
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center">
-                        {getSuggestionIcon(suggestion.type)}
-                        <span className="ml-2 font-semibold capitalize text-sm">{suggestion.type}</span>
-                      </div>
-                    </div>
-
-                    <p className="text-sm mb-3 leading-relaxed">{suggestion.text}</p>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        applySuggestion(suggestion)
-                      }}
-                      className="w-full px-3 py-2 bg-white/80 hover:bg-white rounded-lg transition-colors text-sm font-medium"
-                    >
-                      Apply Suggestion
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Writing Tips */}
-            <div className="mt-8 p-4 bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl">
-              <h3 className="font-semibold text-gray-900 mb-2">💡 Writing Tip</h3>
-              <p className="text-sm text-gray-600">
-                {writingMode === "creative" && "Use vivid imagery and emotional language to engage your readers."}
-                {writingMode === "professional" && "Keep sentences clear and concise. Use active voice when possible."}
-                {writingMode === "academic" && "Support your arguments with evidence and maintain formal tone."}
-                {writingMode === "casual" &&
-                  "Write as if you're talking to a friend. Use contractions and simple words."}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="mt-16 grid md:grid-cols-3 gap-8">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Edit className="w-6 h-6 text-violet-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Real-time Assistance</h3>
-            <p className="text-gray-600 text-sm">Get AI suggestions and improvements as you write</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Lightbulb className="w-6 h-6 text-purple-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Creative Ideas</h3>
-            <p className="text-gray-600 text-sm">Overcome writer's block with AI-generated ideas</p>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Settings className="w-6 h-6 text-blue-600" />
-            </div>
-            <h3 className="font-semibold text-gray-900 mb-2">Adaptive Modes</h3>
-            <p className="text-gray-600 text-sm">Switch between writing styles for different contexts</p>
+        <div className="flex items-center space-x-4">
+          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Comments</button>
+          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Share</button>
+          <div className="flex items-center space-x-2">
+            <User size={16} />
+            <span className="text-xs">John Doe</span>
           </div>
         </div>
       </div>
+
+      <div className="bg-white border-b border-gray-200">
+        <div className="flex items-center px-4">
+          {menuTabs.map((tab) => (
+            <button
+              key={tab.name}
+              onClick={() => setActiveTab(tab.name)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === tab.name
+                  ? "border-blue-500 text-blue-600 bg-blue-50"
+                  : "border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+              } ${tab.special ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600" : ""}`}
+            >
+              <div className="flex items-center space-x-2">
+                <tab.icon size={16} />
+                <span>{tab.name}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+        {activeTab === "Home" && (
+          <div className="flex items-center space-x-4">
+            <ToolGroup title="File" tools={homeTools.filter((t) => t.group === "file")} />
+            <ToolGroup title="Clipboard" tools={homeTools.filter((t) => t.group === "clipboard")} />
+            <ToolGroup title="Font" tools={homeTools.filter((t) => t.group === "format")} />
+            <ToolGroup title="Paragraph" tools={homeTools.filter((t) => t.group === "align" || t.group === "list")} />
+          </div>
+        )}
+
+        {activeTab === "ResearchBot" && (
+          <div className="grid grid-cols-6 gap-2">
+            {researchBotTools.map((tool, index) => (
+              <button
+                key={index}
+                className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
+              >
+                <div
+                  className={`${tool.color} text-white p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform`}
+                >
+                  <tool.icon size={20} />
+                </div>
+                <span className="text-xs font-medium text-gray-800 text-center">{tool.name}</span>
+                <span className="text-xs text-gray-500 text-center mt-1 leading-tight">{tool.description}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 flex">
+        <div className="flex-1 bg-gray-100 p-8 overflow-y-auto">
+          <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-sm">
+            <SuperDoc
+              initialContent={docContent || "Start typing your document here..."}
+              onSave={handleSave}
+              options={{
+                toolbar: true,
+                trackChanges: true,
+                formats: ["bold", "italic", "underline", "list", "table"],
+              }}
+              style={{ height: "600px", border: "1px solid #e5e7eb", borderRadius: "8px" }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-white border-t border-gray-200 px-4 py-2 flex items-center justify-between text-sm text-gray-600">
+          <div className="flex items-center space-x-4">
+            <span>Page 1 of 1</span>
+            <span>1,247 words</span>
+            <span>English (U.S.)</span>
+          </div>
+          <div className="flex items-center space-x-4">
+            <span>100%</span>
+            <button className="hover:text-gray-900">Zoom</button>
+          </div>
+        </div>
+      </div>
+
+      {sidebarOpen && (
+        <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <div className="bg-blue-600 text-white p-2 rounded-lg">
+                <Brain size={20} />
+              </div>
+              <span className="font-semibold text-gray-900">Editore ResearchBot AI</span>
+            </div>
+            <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="text-green-600" size={20} />
+                <span className="font-medium text-gray-900">Grammar Checker</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">Real-time checking</span>
+                <button
+                  onClick={() => setGrammarChecking(!grammarChecking)}
+                  className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? "bg-green-500" : "bg-gray-300"}`}
+                >
+                  <div
+                    className={`w-4 h-4 bg-white rounded-full transition-transform ${grammarChecking ? "translate-x-5" : "translate-x-1"} mt-1`}
+                  ></div>
+                </button>
+              </div>
+            </div>
+            <div className="text-sm text-gray-600 mb-3">3 suggestions available</div>
+            <div className="space-y-2">
+              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
+                <div className="flex items-start space-x-2">
+                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 mb-1">
+                      Consider replacing "revolutionized" with more formal academic language
+                    </p>
+                    <div className="flex space-x-2">
+                      <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">
+                        Accept
+                      </button>
+                      <button className="text-xs border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+                        Ignore
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-b border-gray-200">
+            <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                <Edit3 className="text-blue-600 mb-1" size={16} />
+                <span className="text-xs text-blue-800 block">Tone Optimizer</span>
+              </button>
+              <button className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
+                <RefreshCw className="text-purple-600 mb-1" size={16} />
+                <span className="text-xs text-purple-800 block">Paraphraser</span>
+              </button>
+              <button className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                <Quote className="text-green-600 mb-1" size={16} />
+                <span className="text-xs text-green-800 block">Citations</span>
+              </button>
+              <button className="p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors">
+                <Search className="text-orange-600 mb-1" size={16} />
+                <span className="text-xs text-orange-800 block">Find Sources</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 flex-1">
+            <div className="flex items-center space-x-2 mb-3">
+              <Star className="text-yellow-500" size={16} />
+              <h3 className="font-medium text-gray-900">Premium Features</h3>
+            </div>
+            <div className="space-y-2">
+              {premiumTools.map((tool, index) => (
+                <button
+                  key={index}
+                  className="w-full p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all text-left"
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`${tool.color} text-white p-2 rounded-lg`}>
+                      <tool.icon size={16} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm font-medium text-gray-800">{tool.name}</span>
+                        <Star className="text-yellow-500" size={12} />
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">{tool.description}</p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-4 p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-center">
+              <h4 className="font-semibold mb-1">Upgrade to Premium</h4>
+              <p className="text-xs text-purple-100 mb-3">Unlock all AI research features</p>
+              <button className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
+                Start Free Trial
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {!sidebarOpen && (
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-colors"
+        >
+          <Brain size={20} />
+        </button>
+      )}
     </div>
   )
 }
