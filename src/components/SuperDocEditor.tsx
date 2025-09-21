@@ -1,9 +1,49 @@
 import React, { useState } from 'react';
 import { Upload, Save, FileText } from 'lucide-react';
 
+// Paper template content with AI guidance
+const PAPER_TEMPLATE = `Research Paper Title
+[AI Guidance: Create a clear, specific title that reflects your research question and main findings. Keep it concise (10-15 words) and avoid jargon.]
+
+Abstract
+[AI Guidance: Write a 150-250 word summary covering: (1) Research problem/objective, (2) Methods used, (3) Key findings, (4) Main conclusions. Write this section last, after completing your paper.]
+
+Keywords: [List 3-6 relevant terms for indexing]
+
+1. Introduction
+[AI Guidance: Start broad, then narrow to your specific research question. Include: (1) Background context, (2) Problem statement, (3) Research objectives/questions, (4) Significance of the study, (5) Brief overview of methodology. End with a clear thesis statement.]
+
+2. Literature Review
+[AI Guidance: Organize by themes, not chronologically. For each theme: (1) Summarize existing research, (2) Identify gaps or contradictions, (3) Show how your work addresses these gaps. Use recent sources (last 5-10 years) and maintain critical analysis throughout.]
+
+3. Methodology
+[AI Guidance: Provide enough detail for replication. Include: (1) Research design/approach, (2) Participants/sample, (3) Data collection methods, (4) Data analysis procedures, (5) Ethical considerations. Justify your choices and acknowledge limitations.]
+
+4. Results
+[AI Guidance: Present findings objectively without interpretation. Use: (1) Clear subheadings for different analyses, (2) Tables and figures with descriptive captions, (3) Statistical significance where applicable. Report negative results too - they're valuable.]
+
+5. Discussion
+[AI Guidance: Interpret your results in context. Address: (1) How findings answer your research questions, (2) Comparison with previous studies, (3) Theoretical implications, (4) Practical applications, (5) Study limitations, (6) Future research directions.]
+
+6. Conclusion
+[AI Guidance: Concisely summarize: (1) Main findings, (2) Contribution to the field, (3) Practical implications. Avoid introducing new information. End with a strong closing statement about the significance of your work.]
+
+References
+[AI Guidance: Follow your required citation style (APA, MLA, etc.) consistently. Include all sources cited in your paper. Use reference management tools to ensure accuracy and proper formatting.]
+
+Appendices (if applicable)
+[AI Guidance: Include supplementary materials that support but don't interrupt the main text: raw data, detailed calculations, additional figures, survey instruments, etc.]`;
+
 // Mock SuperDoc component since the actual package may not be available
-const MockSuperDoc = ({ initialContent, onSave, options, style, className }: any) => {
+const MockSuperDoc = ({ initialContent, onSave, onTemplateLoad, options, style, className }: any) => {
   const [content, setContent] = useState(initialContent || '');
+
+  // Update content when template is loaded
+  React.useEffect(() => {
+    if (onTemplateLoad) {
+      setContent(initialContent);
+    }
+  }, [initialContent, onTemplateLoad]);
 
   const handleSave = () => {
     if (onSave) {
@@ -57,7 +97,7 @@ const MockSuperDoc = ({ initialContent, onSave, options, style, className }: any
   );
 };
 
-const SuperDocEditor = () => {
+const SuperDocEditor = ({ onPaperTemplateClick }: { onPaperTemplateClick?: () => void }) => {
   const [docContent, setDocContent] = useState(`Editore Tool - AI-Powered Research Paper Assistant
 
 Abstract
@@ -102,6 +142,22 @@ Johnson, A., & Brown, R. (2024). Natural language processing in scholarly commun
 
 Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in higher education. Educational Innovation Quarterly, 12(4), 78-95.`);
   const [fileName, setFileName] = useState('research-paper.docx');
+  const [templateLoaded, setTemplateLoaded] = useState(false);
+
+  // Handle paper template loading
+  const handlePaperTemplate = () => {
+    setDocContent(PAPER_TEMPLATE);
+    setFileName('research-paper-template.docx');
+    setTemplateLoaded(true);
+  };
+
+  // Expose the template function to parent component
+  React.useEffect(() => {
+    if (onPaperTemplateClick) {
+      // Store the function reference so parent can call it
+      (window as any).loadPaperTemplate = handlePaperTemplate;
+    }
+  }, [onPaperTemplateClick]);
 
   // Handle file upload
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -170,6 +226,7 @@ Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in high
         <MockSuperDoc
           initialContent={docContent}
           onSave={handleSave}
+          onTemplateLoad={templateLoaded}
           options={{
             toolbar: true,
             trackChanges: true,
