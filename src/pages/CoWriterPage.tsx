@@ -343,7 +343,7 @@ function CoWriterPage() {
                 </button>
               </div>
 
-              {/* Mobile Content */}
+                              {/* Mobile Content */}
               <div className="flex-1 overflow-y-auto">
                 {/* Grammar Checker Section */}
                 <div className="p-4 border-b border-gray-200">
@@ -384,19 +384,9 @@ function CoWriterPage() {
                 <div className="p-4">
                   <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    <button 
-                      onClick={() => setToneOptimizerOpen(true)}
-                      className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
-                    >
-                      <Edit3 className="text-blue-600 mb-2" size={18} />
-                      <span className="text-sm text-blue-800 block font-medium">Tone Optimizer</span>
-                    </button>
-                    <button 
-                      onClick={() => handleToolClick('Paraphraser')}
-                      className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
-                    >
-                      <RefreshCw className="text-purple-600 mb-2" size={18} />
-                      <span className="text-sm text-purple-800 block font-medium">Paraphraser</span>
+                    <button className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                      <Save className="text-blue-600 mb-2" size={18} />
+                      <span className="text-sm text-blue-800 block font-medium">Save Document</span>
                     </button>
                     <button className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
                       <Quote className="text-green-600 mb-2" size={18} />
@@ -474,19 +464,9 @@ function CoWriterPage() {
             <div className="p-4 flex-1 overflow-y-auto">
               <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
               <div className="grid grid-cols-2 gap-2">
-                <button 
-                  onClick={() => setToneOptimizerOpen(true)}
-                  className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
-                >
-                  <Edit3 className="text-blue-600 mb-1" size={16} />
-                  <span className="text-xs text-blue-800 block">Tone Optimizer</span>
-                </button>
-                <button 
-                  onClick={() => handleToolClick('Paraphraser')}
-                  className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
-                >
-                  <RefreshCw className="text-purple-600 mb-1" size={16} />
-                  <span className="text-xs text-purple-800 block">Paraphraser</span>
+                <button className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                  <Save className="text-blue-600 mb-1" size={16} />
+                  <span className="text-xs text-blue-800 block">Save Document</span>
                 </button>
                 <button className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
                   <Quote className="text-green-600 mb-1" size={16} />
