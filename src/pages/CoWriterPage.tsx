@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SuperDocEditor from '../components/SuperDocEditor';
+import SuperDocEditor from './components/SuperDocEditor';
 
 import { 
   FileText, 
@@ -62,6 +62,7 @@ function CoWriterPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [selectedText, setSelectedText] = useState('');
   const [grammarChecking, setGrammarChecking] = useState(true);
+  const [toneOptimizerOpen, setToneOptimizerOpen] = useState(false);
 
   const menuTabs = [
     { name: 'File', icon: FileText },
@@ -121,8 +122,17 @@ function CoWriterPage() {
       if ((window as any).loadPaperTemplate) {
         (window as any).loadPaperTemplate();
       }
+    } else if (toolName === 'Tone Optimizer') {
+      setToneOptimizerOpen(true);
     }
     // Add other tool actions here as needed
+  };
+
+  // Handle tone optimizer changes
+  const handleToneOptimizerApply = (originalText: string, optimizedText: string) => {
+    // In a real implementation, you would replace the text in the document
+    console.log('Applying tone optimization:', { originalText, optimizedText });
+    // For now, we'll just log it - you could integrate this with the SuperDocEditor
   };
 
   const ToolGroup = ({ title, tools, className = "" }) => (
@@ -296,6 +306,13 @@ function CoWriterPage() {
               <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
               <div className="grid grid-cols-2 gap-2">
                 <button className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
+                  <Edit3 className="text-blue-600 mb-1" size={16} />
+                  <span className="text-xs text-blue-800 block">Tone Optimizer</span>
+                </button>
+                <button 
+                  onClick={() => setToneOptimizerOpen(true)}
+                  className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
+                >
                   <Edit3 className="text-blue-600 mb-1" size={16} />
                   <span className="text-xs text-blue-800 block">Tone Optimizer</span>
                 </button>
