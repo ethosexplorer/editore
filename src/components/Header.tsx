@@ -81,12 +81,12 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden xl:flex items-center space-x-1">
+          <nav className="hidden xl:flex items-center space-x-0 ml-16">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
-                className={`relative text-sm font-semibold transition-all duration-300 group px-3 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-teal-50 ${
+                className={`relative text-sm font-semibold transition-all duration-300 group px-2 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-teal-50 ${
                   location.pathname === item.path
                     ? "text-blue-600 bg-gradient-to-r from-blue-50 to-teal-50"
                     : "text-gray-700 hover:text-gray-900"
@@ -96,7 +96,7 @@ const Header: React.FC = () => {
               >
                 {item.name}
                 <div
-                  className={`absolute -bottom-1 left-3 right-3 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-300 ${
+                  className={`absolute -bottom-1 left-2 right-2 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-300 ${
                     activeItem === item.name || location.pathname === item.path
                       ? "opacity-100 scale-x-100"
                       : "opacity-0 scale-x-0"
