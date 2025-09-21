@@ -198,7 +198,7 @@ Privacy Mode: ${privacyMode ? 'Enabled (No content stored)' : 'Disabled'}`;
                 <span className="text-green-600 font-medium sm:hidden">Protected</span>
               </div>
               <button className="px-3 py-2 sm:px-4 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors text-xs sm:text-sm">
-                <span className="hidden sm:inline">Premium Features</span>
+                <span className="hidden sm:inline">Upgrade to Premium</span>
                 <span className="sm:hidden">Premium</span>
               </button>
             </div>
