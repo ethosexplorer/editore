@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SuperDocEditor from './components/SuperDocEditor';
+import SuperDocEditor from '../components/SuperDocEditor';
 import { 
   FileText, 
   PenTool, 
