@@ -1,7 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Save, FileText, Wand2, AlertCircle, ArrowRight, Check, Copy } from 'lucide-react';
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+import { Upload, Save, FileText, Wand2, AlertCircle, ArrowRight, Check, Copy, RefreshCw } from 'lucide-react';
 import { generateText } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -162,6 +160,10 @@ Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in high
   const [optimizedText, setOptimizedText] = useState('');
   const [casualWords, setCasualWords] = useState<Array<{word: string, suggestion: string, context: string}>>([]);
   const [copied, setCopied] = useState(false);
+  const [showParaphraser, setShowParaphraser] = useState(false);
+  const [isParaphrasing, setIsParaphrasing] = useState(false);
+  const [paraphrasedText, setParaphrasedText] = useState('');
+  const [paraphraseCopied, setParaphraseCopied] = useState(false);
 
   // Common casual to academic word mappings
   const casualToAcademic = {
@@ -299,6 +301,66 @@ Please provide only the rewritten text without explanations.`,
     }
   };
 
+  // Handle paraphrasing
+  const handleParaphraser = async () => {
+    // Get selected text or use entire document
+    const textToParaphrase = selectedText || docContent;
+    if (!textToParaphrase.trim()) return;
+    
+    setIsParaphrasing(true);
+    setShowParaphraser(true);
+    
+    try {
+      const { text } = await generateText({
+        model: openai('gpt-4o'),
+        prompt: `Please paraphrase the following text to reduce similarity index while preserving the original meaning and academic tone. Focus on:
+- Changing sentence structure and word order
+- Using appropriate synonyms where possible
+- Maintaining all technical terms and key concepts
+- Preserving the academic writing style and formality
+- Keeping the same meaning and arguments
+- Ensuring the text remains scholarly and professional
+
+Original text: "${textToParaphrase}"
+
+Please provide only the paraphrased text without explanations.`,
+      });
+      
+      setParaphrasedText(text);
+    } catch (error) {
+      console.error('Error paraphrasing text:', error);
+      setParaphrasedText('Error: Unable to paraphrase text. Please try again.');
+    } finally {
+      setIsParaphrasing(false);
+    }
+  };
+
+  // Apply paraphrased text to document
+  const applyParaphrasedText = () => {
+    if (selectedText && paraphrasedText) {
+      // Replace selected text with paraphrased version
+      const newContent = docContent.replace(selectedText, paraphrasedText);
+      setDocContent(newContent);
+    } else if (paraphrasedText) {
+      // Replace entire document
+      setDocContent(paraphrasedText);
+    }
+    setShowParaphraser(false);
+    setParaphrasedText('');
+    setSelectedText('');
+  };
+
+  // Copy paraphrased text
+  const copyParaphrasedText = async () => {
+    try {
+      await navigator.clipboard.writeText(paraphrasedText);
+      setParaphraseCopied(true);
+      setTimeout(() => setParaphraseCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+    }
+  };
+
   // Expose tone optimizer function to parent
   React.useEffect(() => {
     (window as any).handleToneOptimizer = handleToneOptimizer;
@@ -393,6 +455,24 @@ Please provide only the rewritten text without explanations.`,
               <>
                 <Wand2 className="w-4 h-4" />
                 <span className="text-sm">Tone Optimizer</span>
+              </>
+            )}
+          </button>
+          
+          <button 
+            onClick={handleParaphraser}
+            disabled={isParaphrasing}
+            className="flex items-center space-x-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded transition-colors"
+          >
+            {isParaphrasing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span className="text-sm">Paraphrasing...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                <span className="text-sm">Paraphraser</span>
               </>
             )}
           </button>
@@ -558,6 +638,119 @@ Please provide only the rewritten text without explanations.`,
                       <span className="font-mono bg-green-100 px-1 rounded">it is suggested</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paraphraser Modal */}
+      {showParaphraser && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <RefreshCw size={24} />
+                <h2 className="text-xl font-semibold">Paraphraser - Plagiarism-Safe Rewriting</h2>
+              </div>
+              <button 
+                onClick={() => setShowParaphraser(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <FileText size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Original Text */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    {selectedText ? 'Selected Text' : 'Document Content'}
+                  </label>
+                  <textarea
+                    value={selectedText || docContent}
+                    readOnly
+                    className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none bg-gray-50"
+                  />
+                  
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <h4 className="text-sm font-medium text-blue-800 mb-2">Paraphrasing Benefits:</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Reduces similarity index for plagiarism checkers</li>
+                      <li>• Maintains original meaning and academic tone</li>
+                      <li>• Uses different sentence structures and vocabulary</li>
+                      <li>• Preserves technical terms and key concepts</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Paraphrased Text */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Paraphrased Version
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={paraphrasedText}
+                      readOnly
+                      className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none bg-gray-50"
+                      placeholder={isParaphrasing ? "Paraphrasing text..." : "Paraphrased text will appear here..."}
+                    />
+                    {paraphrasedText && (
+                      <button
+                        onClick={copyParaphrasedText}
+                        className="absolute top-2 right-2 p-2 text-gray-500 hover:text-gray-700 transition-colors"
+                        title="Copy to clipboard"
+                      >
+                        {paraphraseCopied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                      </button>
+                    )}
+                  </div>
+                  {paraphrasedText && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={applyParaphrasedText}
+                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Apply to Document
+                      </button>
+                      <button
+                        onClick={copyParaphrasedText}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tips and Information */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                  <h3 className="font-medium text-purple-900 mb-2">How Paraphrasing Helps:</h3>
+                  <ul className="text-sm text-purple-800 space-y-1">
+                    <li>• Changes sentence structure and word order</li>
+                    <li>• Replaces words with synonyms where appropriate</li>
+                    <li>• Maintains academic tone and formality</li>
+                    <li>• Preserves all original meaning and arguments</li>
+                    <li>• Reduces similarity scores in plagiarism checkers</li>
+                  </ul>
+                </div>
+                
+                <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <h3 className="font-medium text-indigo-900 mb-2">Best Practices:</h3>
+                  <ul className="text-sm text-indigo-800 space-y-1">
+                    <li>• Always cite original sources even when paraphrasing</li>
+                    <li>• Review paraphrased text for accuracy</li>
+                    <li>• Ensure technical terms remain precise</li>
+                    <li>• Check that the meaning hasn't changed</li>
+                    <li>• Use paraphrasing ethically and responsibly</li>
+                  </ul>
                 </div>
               </div>
             </div>
