@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { Upload, Save, FileText } from 'lucide-react';
+import { Upload, Save, FileText, Wand2, AlertCircle, ArrowRight, Check, Copy } from 'lucide-react';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
 
 // Paper template content with AI guidance
 const PAPER_TEMPLATE = `Research Paper Title
@@ -35,7 +39,7 @@ Appendices (if applicable)
 [AI Guidance: Include supplementary materials that support but don't interrupt the main text: raw data, detailed calculations, additional figures, survey instruments, etc.]`;
 
 // Mock SuperDoc component since the actual package may not be available
-const MockSuperDoc = ({ initialContent, onSave, onTemplateLoad, options, style, className }: any) => {
+const MockSuperDoc = ({ initialContent, onSave, onTemplateLoad, options, style, className, onTextSelect }: any) => {
   const [content, setContent] = useState(initialContent || '');
 
   // Update content when template is loaded
@@ -48,6 +52,15 @@ const MockSuperDoc = ({ initialContent, onSave, onTemplateLoad, options, style, 
   const handleSave = () => {
     if (onSave) {
       onSave(content);
+    }
+  };
+
+  // Handle text selection
+  const handleTextSelection = () => {
+    const selection = window.getSelection();
+    const selectedText = selection?.toString() || '';
+    if (onTextSelect) {
+      onTextSelect(selectedText);
     }
   };
 
@@ -143,6 +156,153 @@ Johnson, A., & Brown, R. (2024). Natural language processing in scholarly commun
 Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in higher education. Educational Innovation Quarterly, 12(4), 78-95.`);
   const [fileName, setFileName] = useState('research-paper.docx');
   const [templateLoaded, setTemplateLoaded] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const [showToneOptimizer, setShowToneOptimizer] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizedText, setOptimizedText] = useState('');
+  const [casualWords, setCasualWords] = useState<Array<{word: string, suggestion: string, context: string}>>([]);
+  const [copied, setCopied] = useState(false);
+
+  // Common casual to academic word mappings
+  const casualToAcademic = {
+    'big': 'significant',
+    'huge': 'substantial',
+    'tiny': 'minimal',
+    'lots of': 'numerous',
+    'a lot of': 'considerable',
+    'really': 'particularly',
+    'very': 'highly',
+    'pretty': 'relatively',
+    'kind of': 'somewhat',
+    'sort of': 'somewhat',
+    'stuff': 'materials',
+    'things': 'elements',
+    'get': 'obtain',
+    'got': 'obtained',
+    'show': 'demonstrate',
+    'find': 'determine',
+    'found': 'determined',
+    'look at': 'examine',
+    'check': 'verify',
+    'figure out': 'ascertain',
+    'come up with': 'develop',
+    'deal with': 'address',
+    'good': 'effective',
+    'bad': 'ineffective',
+    'okay': 'acceptable',
+    'nice': 'favorable',
+    'weird': 'anomalous',
+    'cool': 'innovative',
+    'awesome': 'remarkable',
+    'amazing': 'extraordinary',
+    'crazy': 'unprecedented',
+    'totally': 'completely',
+    'basically': 'essentially',
+    'obviously': 'evidently',
+    'clearly': 'demonstrably',
+    'of course': 'naturally',
+    'I think': 'it is suggested',
+    'I believe': 'it is proposed',
+    'I feel': 'it appears',
+    'we think': 'it is hypothesized',
+    'we believe': 'it is postulated'
+  };
+
+  // Detect casual words in text
+  const detectCasualWords = (text: string) => {
+    const detected: Array<{word: string, suggestion: string, context: string}> = [];
+    const sentences = text.split(/[.!?]+/).filter(s => s.trim());
+    
+    Object.entries(casualToAcademic).forEach(([casual, academic]) => {
+      const regex = new RegExp(`\\b${casual.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi');
+      sentences.forEach(sentence => {
+        if (regex.test(sentence)) {
+          const contextStart = Math.max(0, sentence.toLowerCase().indexOf(casual.toLowerCase()) - 20);
+          const contextEnd = Math.min(sentence.length, sentence.toLowerCase().indexOf(casual.toLowerCase()) + casual.length + 20);
+          const context = sentence.substring(contextStart, contextEnd).trim();
+          
+          detected.push({
+            word: casual,
+            suggestion: academic,
+            context: `...${context}...`
+          });
+        }
+      });
+    });
+    
+    return detected;
+  };
+
+  // Handle tone optimization
+  const handleToneOptimizer = async () => {
+    // Get selected text or use entire document
+    const textToOptimize = selectedText || docContent;
+    if (!textToOptimize.trim()) return;
+    
+    setIsOptimizing(true);
+    setShowToneOptimizer(true);
+    
+    try {
+      // Detect casual words
+      const detectedWords = detectCasualWords(textToOptimize);
+      setCasualWords(detectedWords);
+      
+      const { text } = await generateText({
+        model: openai('gpt-4o'),
+        prompt: `Please rewrite the following text into formal academic style suitable for research papers. Focus on:
+- Converting casual language to academic terminology
+- Using precise, scholarly vocabulary
+- Maintaining objectivity and formal tone
+- Ensuring proper academic sentence structure
+- Removing colloquialisms and informal expressions
+- Converting first-person statements to third-person or passive voice where appropriate
+- Using hedging language and appropriate qualifiers
+- Ensuring claims are properly supported and objective
+
+Original text: "${textToOptimize}"
+
+Please provide only the rewritten text without explanations.`,
+      });
+      
+      setOptimizedText(text);
+    } catch (error) {
+      console.error('Error optimizing tone:', error);
+      setOptimizedText('Error: Unable to optimize text. Please try again.');
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
+  // Apply optimized text to document
+  const applyOptimizedText = () => {
+    if (selectedText && optimizedText) {
+      // Replace selected text with optimized version
+      const newContent = docContent.replace(selectedText, optimizedText);
+      setDocContent(newContent);
+    } else if (optimizedText) {
+      // Replace entire document
+      setDocContent(optimizedText);
+    }
+    setShowToneOptimizer(false);
+    setOptimizedText('');
+    setSelectedText('');
+  };
+
+  // Copy optimized text
+  const copyOptimizedText = async () => {
+    try {
+      await navigator.clipboard.writeText(optimizedText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error('Failed to copy text:', error);
+    }
+  };
+
+  // Expose tone optimizer function to parent
+  React.useEffect(() => {
+    (window as any).handleToneOptimizer = handleToneOptimizer;
+  }, [docContent, selectedText]);
 
   // Handle paper template loading
   const handlePaperTemplate = () => {
@@ -218,6 +378,24 @@ Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in high
             <Save className="w-4 h-4" />
             <span className="text-sm">Save Document</span>
           </button>
+          
+          <button 
+            onClick={handleToneOptimizer}
+            disabled={isOptimizing}
+            className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded transition-colors"
+          >
+            {isOptimizing ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span className="text-sm">Optimizing...</span>
+              </>
+            ) : (
+              <>
+                <Wand2 className="w-4 h-4" />
+                <span className="text-sm">Tone Optimizer</span>
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -227,6 +405,7 @@ Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in high
           initialContent={docContent}
           onSave={handleSave}
           onTemplateLoad={templateLoaded}
+          onTextSelect={setSelectedText}
           options={{
             toolbar: true,
             trackChanges: true,
@@ -236,6 +415,155 @@ Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in high
           style={{ height: '100%' }}
         />
       </div>
+
+      {/* Tone Optimizer Modal */}
+      {showToneOptimizer && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Wand2 size={24} />
+                <h2 className="text-xl font-semibold">Tone Optimizer</h2>
+              </div>
+              <button 
+                onClick={() => setShowToneOptimizer(false)}
+                className="text-white hover:text-gray-200 transition-colors"
+              >
+                <FileText size={24} />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Original Text */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-gray-700">
+                      {selectedText ? 'Selected Text' : 'Document Content'}
+                    </label>
+                    {casualWords.length > 0 && (
+                      <div className="flex items-center space-x-1 text-xs text-orange-600">
+                        <AlertCircle size={14} />
+                        <span>{casualWords.length} casual word{casualWords.length !== 1 ? 's' : ''} detected</span>
+                      </div>
+                    )}
+                  </div>
+                  <textarea
+                    value={selectedText || docContent}
+                    readOnly
+                    className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none bg-gray-50"
+                  />
+                  
+                  {/* Casual Word Suggestions */}
+                  {casualWords.length > 0 && (
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <h4 className="text-sm font-medium text-orange-800 mb-2 flex items-center space-x-1">
+                        <AlertCircle size={14} />
+                        <span>Casual Language Detected</span>
+                      </h4>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {casualWords.slice(0, 5).map((item, index) => (
+                          <div key={index} className="flex items-center space-x-2 text-xs">
+                            <span className="bg-orange-200 text-orange-800 px-2 py-1 rounded font-mono">
+                              {item.word}
+                            </span>
+                            <ArrowRight size={12} className="text-orange-600" />
+                            <span className="bg-green-200 text-green-800 px-2 py-1 rounded font-mono">
+                              {item.suggestion}
+                            </span>
+                          </div>
+                        ))}
+                        {casualWords.length > 5 && (
+                          <div className="text-xs text-orange-600 italic">
+                            +{casualWords.length - 5} more suggestions available
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Optimized Text */}
+                <div className="space-y-3">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Academic Style Version
+                  </label>
+                  <div className="relative">
+                    <textarea
+                      value={optimizedText}
+                      readOnly
+                      className="w-full h-64 p-3 border border-gray-300 rounded-lg resize-none bg-gray-50"
+                      placeholder={isOptimizing ? "Optimizing text..." : "Optimized text will appear here..."}
+                    />
+                    {optimizedText && (
+                      <button
+                        onClick={copyOptimizedText}
+                        className="absolute top-2 right-2 p-2 text-gray-500 hover:text-gray-700 transition-colors"
+                        title="Copy to clipboard"
+                      >
+                        {copied ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                      </button>
+                    )}
+                  </div>
+                  {optimizedText && (
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={applyOptimizedText}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors"
+                      >
+                        Apply to Document
+                      </button>
+                      <button
+                        onClick={copyOptimizedText}
+                        className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tips */}
+              <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <h3 className="font-medium text-blue-900 mb-2">Academic Writing Tips:</h3>
+                  <ul className="text-sm text-blue-800 space-y-1">
+                    <li>• Use third person instead of first person</li>
+                    <li>• Replace casual words with formal alternatives</li>
+                    <li>• Use precise, technical vocabulary</li>
+                    <li>• Avoid contractions and colloquial expressions</li>
+                    <li>• Maintain objectivity and avoid emotional language</li>
+                  </ul>
+                </div>
+                
+                <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                  <h3 className="font-medium text-green-900 mb-2">Common Replacements:</h3>
+                  <div className="text-sm text-green-800 space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono bg-red-100 px-1 rounded">big</span>
+                      <ArrowRight size={12} />
+                      <span className="font-mono bg-green-100 px-1 rounded">significant</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono bg-red-100 px-1 rounded">show</span>
+                      <ArrowRight size={12} />
+                      <span className="font-mono bg-green-100 px-1 rounded">demonstrate</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono bg-red-100 px-1 rounded">I think</span>
+                      <ArrowRight size={12} />
+                      <span className="font-mono bg-green-100 px-1 rounded">it is suggested</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
