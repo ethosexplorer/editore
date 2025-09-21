@@ -60,6 +60,7 @@ import {
 function CoWriterPage() {
   const [activeTab, setActiveTab] = useState('Home');
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [grammarChecking, setGrammarChecking] = useState(true);
   const [toneOptimizerOpen, setToneOptimizerOpen] = useState(false);
@@ -116,11 +117,11 @@ function CoWriterPage() {
   ];
 
   // Handle research bot tool clicks
-  const handleToolClick = (toolName: string, action?: string) => {
+  const handleToolClick = (toolName, action) => {
     if (action === 'paperTemplate') {
       // Call the paper template function from SuperDocEditor
-      if ((window as any).loadPaperTemplate) {
-        (window as any).loadPaperTemplate();
+      if ((window).loadPaperTemplate) {
+        (window).loadPaperTemplate();
       }
     } else if (toolName === 'Tone Optimizer') {
       setToneOptimizerOpen(true);
@@ -129,14 +130,14 @@ function CoWriterPage() {
   };
 
   // Handle tone optimizer changes
-  const handleToneOptimizerApply = (originalText: string, optimizedText: string) => {
+  const handleToneOptimizerApply = (originalText, optimizedText) => {
     // In a real implementation, you would replace the text in the document
     console.log('Applying tone optimization:', { originalText, optimizedText });
     // For now, we'll just log it - you could integrate this with the SuperDocEditor
   };
 
   const ToolGroup = ({ title, tools, className = "" }) => (
-    <div className={`border-r border-gray-200 px-2 ${className}`}>
+    <div className={`border-r border-gray-200 px-2 last:border-r-0 ${className}`}>
       <div className="text-xs text-gray-600 mb-1 font-medium">{title}</div>
       <div className="flex space-x-1">
         {tools.map((tool, index) => (
@@ -156,56 +157,115 @@ function CoWriterPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Top Bar */}
       <div className="bg-blue-600 text-white px-4 py-1 flex items-center justify-between text-sm">
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center space-x-2 md:space-x-4">
           <div className="flex items-center space-x-2">
             <div className="bg-white text-blue-600 p-1 rounded">
               <Brain size={16} />
             </div>
-            <span className="font-semibold">ResearchBot AI</span>
+            <span className="font-semibold hidden sm:inline">ResearchBot AI</span>
+            <span className="font-semibold sm:hidden">RB AI</span>
           </div>
-          <span>•</span>
-          <span>Document1</span>
+          <span className="hidden sm:inline">•</span>
+          <span className="hidden sm:inline">Document1</span>
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-xs">Saved</span>
+            <span className="text-xs hidden sm:inline">Saved</span>
           </div>
         </div>
-        <div className="flex items-center space-x-4">
-          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Comments</button>
+        <div className="flex items-center space-x-2 md:space-x-4">
+          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs hidden md:inline">Comments</button>
           <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Share</button>
           <div className="flex items-center space-x-2">
             <User size={16} />
-            <span className="text-xs">John Doe</span>
+            <span className="text-xs hidden sm:inline">John Doe</span>
           </div>
         </div>
       </div>
 
       {/* Menu Bar */}
       <div className="bg-white border-b border-gray-200">
-        <div className="flex items-center px-4">
-          {menuTabs.map((tab) => (
-            <button
-              key={tab.name}
-              onClick={() => setActiveTab(tab.name)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === tab.name
-                  ? 'border-blue-500 text-blue-600 bg-blue-50'
-                  : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-              } ${tab.special ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600' : ''}`}
-            >
-              <div className="flex items-center space-x-2">
-                <tab.icon size={16} />
-                <span>{tab.name}</span>
-              </div>
-            </button>
-          ))}
+        <div className="flex items-center px-2 md:px-4 overflow-x-auto">
+          {/* Mobile menu toggle */}
+          <button 
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 md:hidden mr-2 hover:bg-gray-100 rounded"
+          >
+            <Menu size={20} />
+          </button>
+          
+          {/* Desktop menu */}
+          <div className="hidden md:flex">
+            {menuTabs.map((tab) => (
+              <button
+                key={tab.name}
+                onClick={() => setActiveTab(tab.name)}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.name
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                } ${tab.special ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600' : ''}`}
+              >
+                <div className="flex items-center space-x-2">
+                  <tab.icon size={16} />
+                  <span>{tab.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile menu */}
+          <div className="md:hidden flex overflow-x-auto space-x-1">
+            {menuTabs.slice(0, 4).map((tab) => (
+              <button
+                key={tab.name}
+                onClick={() => setActiveTab(tab.name)}
+                className={`px-3 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  activeTab === tab.name
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                } ${tab.special ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white hover:from-purple-600 hover:to-blue-600' : ''}`}
+              >
+                <div className="flex items-center space-x-1">
+                  <tab.icon size={16} />
+                  <span className="text-xs">{tab.name}</span>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Mobile dropdown menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 p-2">
+            <div className="grid grid-cols-2 gap-2">
+              {menuTabs.map((tab) => (
+                <button
+                  key={tab.name}
+                  onClick={() => {
+                    setActiveTab(tab.name);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`p-3 text-sm font-medium rounded transition-colors ${
+                    activeTab === tab.name
+                      ? 'bg-blue-100 text-blue-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  } ${tab.special ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white' : ''}`}
+                >
+                  <div className="flex items-center space-x-2">
+                    <tab.icon size={16} />
+                    <span>{tab.name}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Toolbar */}
-      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2">
+      <div className="bg-gray-50 border-b border-gray-200 px-2 md:px-4 py-2 overflow-x-auto">
         {activeTab === 'Home' && (
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 md:space-x-4 min-w-max">
             <ToolGroup title="File" tools={homeTools.filter(t => t.group === 'file')} />
             <ToolGroup title="Clipboard" tools={homeTools.filter(t => t.group === 'clipboard')} />
             <ToolGroup title="Font" tools={homeTools.filter(t => t.group === 'format')} />
@@ -214,42 +274,84 @@ function CoWriterPage() {
         )}
 
         {activeTab === 'ResearchBot' && (
-          <div className="grid grid-cols-6 gap-2">
-            {researchBotTools.map((tool, index) => (
-              <button
-                key={index}
-                onClick={() => handleToolClick(tool.name, tool.action)}
-                className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
-              >
-                <div className={`${tool.color} text-white p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform`}>
-                  <tool.icon size={20} />
+          <div className="space-y-6">
+            {/* Main Research Tools */}
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Core Research Tools</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+                {researchBotTools.map((tool, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleToolClick(tool.name, tool.action)}
+                    className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
+                  >
+                    <div className={`${tool.color} text-white p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform`}>
+                      <tool.icon size={20} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-800 text-center">{tool.name}</span>
+                    <span className="text-xs text-gray-500 text-center mt-1 leading-tight hidden sm:block">{tool.description}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium Tools */}
+            <div>
+              <div className="flex items-center space-x-2 mb-3">
+                <Star className="text-yellow-500" size={16} />
+                <h3 className="text-sm font-semibold text-gray-700">Premium Research Tools</h3>
+                <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-medium">PRO</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                {premiumTools.map((tool, index) => (
+                  <button
+                    key={index}
+                    className="flex flex-col items-center p-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all group relative"
+                  >
+                    <div className={`${tool.color} text-white p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform relative`}>
+                      <tool.icon size={20} />
+                      <Star className="absolute -top-1 -right-1 text-yellow-500 bg-white rounded-full p-0.5" size={12} />
+                    </div>
+                    <span className="text-xs font-medium text-gray-800 text-center">{tool.name}</span>
+                    <span className="text-xs text-gray-600 text-center mt-1 leading-tight hidden sm:block">{tool.description}</span>
+                  </button>
+                ))}
+              </div>
+              
+              {/* Upgrade Banner */}
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg">
+                <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+                  <div className="text-center sm:text-left">
+                    <h4 className="font-semibold text-sm sm:text-base">Unlock Premium Research Tools</h4>
+                    <p className="text-xs text-purple-100">Advanced AI features for serious researchers</p>
+                  </div>
+                  <button className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors whitespace-nowrap">
+                    Start Free Trial
+                  </button>
                 </div>
-                <span className="text-xs font-medium text-gray-800 text-center">{tool.name}</span>
-                <span className="text-xs text-gray-500 text-center mt-1 leading-tight">{tool.description}</span>
-              </button>
-            ))}
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Document Area */}
-        <div className="flex-1 bg-gray-100 p-8 overflow-y-auto">
+        <div className="flex-1 bg-gray-100 p-2 md:p-8 overflow-y-auto">
           <SuperDocEditor onPaperTemplateClick={() => {}} />
         </div>
 
-
         {/* Right Sidebar - AI Assistant */}
         {sidebarOpen && (
-          <div className="w-80 bg-white border-l border-gray-200 flex flex-col">
+          <div className="w-full lg:w-80 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col max-h-96 lg:max-h-none">
             {/* Sidebar Header */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <div className="bg-blue-600 text-white p-2 rounded-lg">
                   <Brain size={20} />
                 </div>
-                <span className="font-semibold text-gray-900">ResearchBot AI</span>
+                <span className="font-semibold text-gray-900">AI Assistant</span>
               </div>
               <button 
                 onClick={() => setSidebarOpen(false)}
@@ -267,7 +369,7 @@ function CoWriterPage() {
                   <span className="font-medium text-gray-900">Grammar Checker</span>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Real-time checking</span>
+                  <span className="text-sm text-gray-600 hidden sm:inline">Real-time</span>
                   <button 
                     onClick={() => setGrammarChecking(!grammarChecking)}
                     className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? 'bg-green-500' : 'bg-gray-300'}`}
@@ -287,7 +389,7 @@ function CoWriterPage() {
                       <p className="text-sm text-gray-800 mb-1">
                         Consider replacing "revolutionized" with more formal academic language
                       </p>
-                      <div className="flex space-x-2">
+                      <div className="flex flex-col sm:flex-row space-y-1 sm:space-y-0 sm:space-x-2">
                         <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">
                           Accept
                         </button>
@@ -302,23 +404,15 @@ function CoWriterPage() {
             </div>
 
             {/* Quick Tools */}
-            <div className="p-4 border-b border-gray-200">
+            <div className="p-4 flex-1 overflow-y-auto">
               <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
               <div className="grid grid-cols-2 gap-2">
-                <button className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors">
-                  <Edit3 className="text-blue-600 mb-1" size={16} />
-                  <span className="text-xs text-blue-800 block">Tone Optimizer</span>
-                </button>
                 <button 
                   onClick={() => setToneOptimizerOpen(true)}
                   className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
                 >
                   <Edit3 className="text-blue-600 mb-1" size={16} />
                   <span className="text-xs text-blue-800 block">Tone Optimizer</span>
-                </button>
-                <button className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
-                  <RefreshCw className="text-purple-600 mb-1" size={16} />
-                  <span className="text-xs text-purple-800 block">Paraphraser</span>
                 </button>
                 <button 
                   onClick={() => handleToolClick('Paraphraser')}
@@ -337,43 +431,6 @@ function CoWriterPage() {
                 </button>
               </div>
             </div>
-
-            {/* Premium Features */}
-            <div className="p-4 flex-1">
-              <div className="flex items-center space-x-2 mb-3">
-                <Star className="text-yellow-500" size={16} />
-                <h3 className="font-medium text-gray-900">Premium Features</h3>
-              </div>
-              <div className="space-y-2">
-                {premiumTools.map((tool, index) => (
-                  <button
-                    key={index}
-                    className="w-full p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all text-left"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`${tool.color} text-white p-2 rounded-lg`}>
-                        <tool.icon size={16} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-medium text-gray-800">{tool.name}</span>
-                          <Star className="text-yellow-500" size={12} />
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1">{tool.description}</p>
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              
-              <div className="mt-4 p-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg text-center">
-                <h4 className="font-semibold mb-1">Upgrade to Premium</h4>
-                <p className="text-xs text-purple-100 mb-3">Unlock all AI research features</p>
-                <button className="bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-100 transition-colors">
-                  Start Free Trial
-                </button>
-              </div>
-            </div>
           </div>
         )}
 
@@ -381,7 +438,7 @@ function CoWriterPage() {
         {!sidebarOpen && (
           <button
             onClick={() => setSidebarOpen(true)}
-            className="fixed right-4 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white p-3 rounded-l-lg shadow-lg hover:bg-blue-700 transition-colors"
+            className="fixed right-4 bottom-4 lg:top-1/2 lg:transform lg:-translate-y-1/2 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-10"
           >
             <Brain size={20} />
           </button>
