@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import SuperDocEditor from '../components/SuperDocEditor';
+import SuperDocEditor from './components/SuperDocEditor';
 
 import { 
   FileText, 
@@ -317,6 +317,13 @@ function CoWriterPage() {
                   <span className="text-xs text-blue-800 block">Tone Optimizer</span>
                 </button>
                 <button className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors">
+                  <RefreshCw className="text-purple-600 mb-1" size={16} />
+                  <span className="text-xs text-purple-800 block">Paraphraser</span>
+                </button>
+                <button 
+                  onClick={() => handleToolClick('Paraphraser')}
+                  className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
+                >
                   <RefreshCw className="text-purple-600 mb-1" size={16} />
                   <span className="text-xs text-purple-800 block">Paraphraser</span>
                 </button>
