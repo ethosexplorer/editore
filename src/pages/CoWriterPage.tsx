@@ -133,32 +133,7 @@ function CoWriterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Top Bar */}
-      <div className="bg-blue-600 text-white px-4 py-1 flex items-center justify-between text-sm">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
-            <div className="bg-white text-blue-600 p-1 rounded">
-              <Brain size={16} />
-            </div>
-            <span className="font-semibold">ResearchBot AI</span>
-          </div>
-          <span>•</span>
-          <span>Document1</span>
-          <div className="flex items-center space-x-1">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-xs">Saved</span>
-          </div>
-        </div>
-        <div className="flex items-center space-x-4">
-          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Comments</button>
-          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Share</button>
-          <div className="flex items-center space-x-2">
-            <User size={16} />
-            <span className="text-xs">John Doe</span>
-          </div>
-        </div>
-      </div>
-
+      
       {/* Menu Bar */}
       <div className="bg-white border-b border-gray-200">
         <div className="flex items-center px-4">
