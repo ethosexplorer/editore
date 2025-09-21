@@ -79,12 +79,12 @@ const Header: React.FC = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex xl:flex items-center space-x-2 lg:space-x-4 xl:space-x-6 2xl:space-x-8 overflow-x-auto">
+          <nav className="hidden lg:flex xl:flex items-center space-x-1 lg:space-x-2 xl:space-x-3 overflow-x-auto">
             {menuItems.map((item) => (
               <Link
                 key={item.name}
                 to={item.path}
-                className={`relative text-xs lg:text-sm font-medium transition-all duration-300 group px-2 lg:px-3 py-2 rounded-lg whitespace-nowrap flex-shrink-0 ${
+                className={`relative text-xs lg:text-sm font-medium transition-all duration-300 group px-1.5 lg:px-2 py-2 rounded-lg whitespace-nowrap flex-shrink-0 ${
                   location.pathname === item.path ? "text-blue-600" : "text-gray-700 hover:text-gray-900"
                 }`}
                 onMouseEnter={() => setActiveItem(item.name)}
@@ -93,7 +93,7 @@ const Header: React.FC = () => {
                 <span className="lg:hidden">{item.name.split(" ")[0]}</span>
                 <span className="hidden lg:inline">{item.name}</span>
                 <div
-                  className={`absolute -bottom-1 left-2 lg:left-3 right-2 lg:right-3 h-0.5 bg-gradient-to-r from-teal-400 to-blue-500 transition-all duration-300 ${
+                  className={`absolute -bottom-1 left-1.5 lg:left-2 right-1.5 lg:right-2 h-0.5 bg-gradient-to-r from-teal-400 to-blue-500 transition-all duration-300 ${
                     activeItem === item.name || location.pathname === item.path
                       ? "opacity-100 scale-x-100"
                       : "opacity-0 scale-x-0"
