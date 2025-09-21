@@ -441,7 +441,7 @@ Please provide only the paraphrased text without explanations.`,
             <span className="text-sm">Save Document</span>
           </button>
           
-          <button 
+{/*           <button 
             onClick={handleToneOptimizer}
             disabled={isOptimizing}
             className="flex items-center space-x-2 px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded transition-colors"
@@ -458,8 +458,8 @@ Please provide only the paraphrased text without explanations.`,
               </>
             )}
           </button>
-          
-          <button 
+           */}
+{/*           <button 
             onClick={handleParaphraser}
             disabled={isParaphrasing}
             className="flex items-center space-x-2 px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded transition-colors"
@@ -475,7 +475,7 @@ Please provide only the paraphrased text without explanations.`,
                 <span className="text-sm">Paraphraser</span>
               </>
             )}
-          </button>
+          </button> */}
         </div>
       </div>
 
