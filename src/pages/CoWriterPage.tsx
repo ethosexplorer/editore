@@ -93,7 +93,7 @@ function CoWriterPage() {
   ];
 
   const researchBotTools = [
-    { name: 'Paper Templates', icon: FileText, description: 'Pre-structured sections with AI guidance', color: 'bg-blue-500' },
+    { name: 'Paper Templates', icon: FileText, description: 'Pre-structured sections with AI guidance', color: 'bg-blue-500', action: 'paperTemplate' },
     { name: 'Tone Optimizer', icon: Edit3, description: 'Convert to formal academic style', color: 'bg-green-500' },
     { name: 'Paraphraser', icon: RefreshCw, description: 'Plagiarism-safe rewriting', color: 'bg-purple-500' },
     { name: 'Citations', icon: Quote, description: 'Auto-generate APA, MLA, IEEE formats', color: 'bg-indigo-500' },
@@ -114,6 +114,17 @@ function CoWriterPage() {
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true }
   ];
 
+  // Handle research bot tool clicks
+  const handleToolClick = (toolName: string, action?: string) => {
+    if (action === 'paperTemplate') {
+      // Call the paper template function from SuperDocEditor
+      if ((window as any).loadPaperTemplate) {
+        (window as any).loadPaperTemplate();
+      }
+    }
+    // Add other tool actions here as needed
+  };
+
   const ToolGroup = ({ title, tools, className = "" }) => (
     <div className={`border-r border-gray-200 px-2 ${className}`}>
       <div className="text-xs text-gray-600 mb-1 font-medium">{title}</div>
@@ -133,7 +144,32 @@ function CoWriterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      
+      {/* Top Bar */}
+      <div className="bg-blue-600 text-white px-4 py-1 flex items-center justify-between text-sm">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <div className="bg-white text-blue-600 p-1 rounded">
+              <Brain size={16} />
+            </div>
+            <span className="font-semibold">ResearchBot AI</span>
+          </div>
+          <span>•</span>
+          <span>Document1</span>
+          <div className="flex items-center space-x-1">
+            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+            <span className="text-xs">Saved</span>
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Comments</button>
+          <button className="hover:bg-blue-700 px-2 py-1 rounded text-xs">Share</button>
+          <div className="flex items-center space-x-2">
+            <User size={16} />
+            <span className="text-xs">John Doe</span>
+          </div>
+        </div>
+      </div>
+
       {/* Menu Bar */}
       <div className="bg-white border-b border-gray-200">
         <div className="flex items-center px-4">
@@ -172,6 +208,7 @@ function CoWriterPage() {
             {researchBotTools.map((tool, index) => (
               <button
                 key={index}
+                onClick={() => handleToolClick(tool.name, tool.action)}
                 className="flex flex-col items-center p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group"
               >
                 <div className={`${tool.color} text-white p-2 rounded-lg mb-2 group-hover:scale-110 transition-transform`}>
@@ -189,7 +226,7 @@ function CoWriterPage() {
       <div className="flex-1 flex">
         {/* Document Area */}
         <div className="flex-1 bg-gray-100 p-8 overflow-y-auto">
-          <SuperDocEditor />
+          <SuperDocEditor onPaperTemplateClick={() => {}} />
         </div>
 
 
