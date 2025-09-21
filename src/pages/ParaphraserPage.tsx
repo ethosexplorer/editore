@@ -1,253 +1,263 @@
-import React, { useState, useRef } from 'react';
-import { RefreshCw, Copy, Download, Globe, Upload, FileText, Crown, CheckCircle, BookOpen, Lightbulb, X, Menu } from 'lucide-react';
+"use client"
+
+import type React from "react"
+import { useState, useRef } from "react"
+import { RefreshCw, Copy, Download, Globe, Upload, Crown, BookOpen, Lightbulb, X, Menu } from "lucide-react"
 
 const ParaphraserPage: React.FC = () => {
-  const [inputText, setInputText] = useState('');
-  const [outputText, setOutputText] = useState('');
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [mode, setMode] = useState('standard');
-  const [synonymLevel, setSynonymLevel] = useState(50);
-  const [language, setLanguage] = useState('en-US');
-  const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [synonyms, setSynonyms] = useState<string[]>([]);
-  const [isPremium, setIsPremium] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
-  const outputRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [inputText, setInputText] = useState("")
+  const [outputText, setOutputText] = useState("")
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [mode, setMode] = useState("standard")
+  const [synonymLevel, setSynonymLevel] = useState(50)
+  const [language, setLanguage] = useState("en-US")
+  const [selectedWord, setSelectedWord] = useState<string | null>(null)
+  const [synonyms, setSynonyms] = useState<string[]>([])
+  const [isPremium, setIsPremium] = useState(false)
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
+  const outputRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // QuillBot modes - 2 free, 7 premium
   const allModes = [
-    { 
-      id: 'standard', 
-      name: 'Standard', 
-      description: 'Basic rephrasing that maintains original meaning', 
-      premium: false
+    {
+      id: "standard",
+      name: "Standard",
+      description: "Basic rephrasing that maintains original meaning",
+      premium: false,
     },
-    { 
-      id: 'fluency', 
-      name: 'Fluency', 
-      description: 'Smooths awkward phrasing and improves readability', 
-      premium: false
+    {
+      id: "fluency",
+      name: "Fluency",
+      description: "Smooths awkward phrasing and improves readability",
+      premium: false,
     },
-    { 
-      id: 'formal', 
-      name: 'Formal', 
-      description: 'Professional tone for business writing', 
-      premium: true
+    {
+      id: "formal",
+      name: "Formal",
+      description: "Professional tone for business writing",
+      premium: true,
     },
-    { 
-      id: 'simple', 
-      name: 'Simple', 
-      description: 'Uses simpler vocabulary', 
-      premium: true
+    {
+      id: "simple",
+      name: "Simple",
+      description: "Uses simpler vocabulary",
+      premium: true,
     },
-    { 
-      id: 'creative', 
-      name: 'Creative', 
-      description: 'Unique and imaginative variations', 
-      premium: true
+    {
+      id: "creative",
+      name: "Creative",
+      description: "Unique and imaginative variations",
+      premium: true,
     },
-    { 
-      id: 'expand', 
-      name: 'Expand', 
-      description: 'Lengthens text by adding detail', 
-      premium: true
+    {
+      id: "expand",
+      name: "Expand",
+      description: "Lengthens text by adding detail",
+      premium: true,
     },
-    { 
-      id: 'shorten', 
-      name: 'Shorten', 
-      description: 'Condenses text while preserving meaning', 
-      premium: true
+    {
+      id: "shorten",
+      name: "Shorten",
+      description: "Condenses text while preserving meaning",
+      premium: true,
     },
-    { 
-      id: 'academic', 
-      name: 'Academic', 
-      description: 'Scholarly tone with advanced vocabulary', 
-      premium: true
+    {
+      id: "academic",
+      name: "Academic",
+      description: "Scholarly tone with advanced vocabulary",
+      premium: true,
     },
-    { 
-      id: 'custom', 
-      name: 'Custom', 
-      description: 'User-defined style preferences', 
-      premium: true
+    {
+      id: "custom",
+      name: "Custom",
+      description: "User-defined style preferences",
+      premium: true,
     },
-  ];
+  ]
 
   const languages = [
-    { id: 'en-US', name: 'English (US)', flag: '🇺🇸' },
-    { id: 'en-GB', name: 'English (UK)', flag: '🇬🇧' },
-    { id: 'en-AU', name: 'English (AU)', flag: '🇦🇺' },
-    { id: 'en-CA', name: 'English (CA)', flag: '🇨🇦' },
-    { id: 'fr', name: 'French', flag: '🇫🇷' },
-    { id: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { id: 'de', name: 'German', flag: '🇩🇪' },
-    { id: 'zh-CN', name: 'Chinese (Simplified)', flag: '🇨🇳' },
-    { id: 'hi', name: 'Hindi', flag: '🇮🇳' },
-    { id: 'ru', name: 'Russian', flag: '🇷🇺' },
-    { id: 'da', name: 'Danish', flag: '🇩🇰' },
-    { id: 'nl', name: 'Dutch', flag: '🇳🇱' },
-    { id: 'it', name: 'Italian', flag: '🇮🇹' },
-    { id: 'ja', name: 'Japanese', flag: '🇯🇵' },
-    { id: 'ko', name: 'Korean', flag: '🇰🇷' },
-    { id: 'pl', name: 'Polish', flag: '🇵🇱' },
-    { id: 'pt-BR', name: 'Portuguese (Brazil)', flag: '🇧🇷' },
-    { id: 'pt-PT', name: 'Portuguese (Portugal)', flag: '🇵🇹' },
-    { id: 'sv', name: 'Swedish', flag: '🇸🇪' },
-    { id: 'tr', name: 'Turkish', flag: '🇹🇷' },
-    { id: 'ar', name: 'Arabic', flag: '🇸🇦' },
-    { id: 'th', name: 'Thai', flag: '🇹🇭' },
-    { id: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
-    { id: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
-    { id: 'ro', name: 'Romanian', flag: '🇷🇴' }
-  ];
+    { id: "en-US", name: "English (US)", flag: "🇺🇸" },
+    { id: "en-GB", name: "English (UK)", flag: "🇬🇧" },
+    { id: "en-AU", name: "English (AU)", flag: "🇦🇺" },
+    { id: "en-CA", name: "English (CA)", flag: "🇨🇦" },
+    { id: "fr", name: "French", flag: "🇫🇷" },
+    { id: "es", name: "Spanish", flag: "🇪🇸" },
+    { id: "de", name: "German", flag: "🇩🇪" },
+    { id: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
+    { id: "hi", name: "Hindi", flag: "🇮🇳" },
+    { id: "ru", name: "Russian", flag: "🇷🇺" },
+    { id: "da", name: "Danish", flag: "🇩🇰" },
+    { id: "nl", name: "Dutch", flag: "🇳🇱" },
+    { id: "it", name: "Italian", flag: "🇮🇹" },
+    { id: "ja", name: "Japanese", flag: "🇯🇵" },
+    { id: "ko", name: "Korean", flag: "🇰🇷" },
+    { id: "pl", name: "Polish", flag: "🇵🇱" },
+    { id: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
+    { id: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
+    { id: "sv", name: "Swedish", flag: "🇸🇪" },
+    { id: "tr", name: "Turkish", flag: "🇹🇷" },
+    { id: "ar", name: "Arabic", flag: "🇸🇦" },
+    { id: "th", name: "Thai", flag: "🇹🇭" },
+    { id: "vi", name: "Vietnamese", flag: "🇻🇳" },
+    { id: "uk", name: "Ukrainian", flag: "🇺🇦" },
+    { id: "ro", name: "Romanian", flag: "🇷🇴" },
+  ]
 
   const handleParaphrase = async () => {
-    if (!inputText.trim()) return;
+    if (!inputText.trim()) return
 
-    const selectedMode = allModes.find(m => m.id === mode);
+    const selectedMode = allModes.find((m) => m.id === mode)
     if (selectedMode?.premium && !isPremium) {
-      setShowUpgradeModal(true);
-      return;
+      setShowUpgradeModal(true)
+      return
     }
 
-    setIsProcessing(true);
-    
+    setIsProcessing(true)
+
     setTimeout(() => {
-      let paraphrased = inputText;
-      
+      let paraphrased = inputText
+
       switch (mode) {
-        case 'standard':
+        case "standard":
+          paraphrased = inputText.replace(/\b(and|but|or|so)\b/gi, (match) => {
+            const conjunctions = {
+              and: "as well as",
+              but: "however",
+              or: "alternatively",
+              so: "therefore",
+            }
+            return conjunctions[match.toLowerCase() as keyof typeof conjunctions] || match
+          })
+          break
+
+        case "fluency":
           paraphrased = inputText
-            .replace(/\b(and|but|or|so)\b/gi, (match) => {
-              const conjunctions = { 
-                and: 'as well as', 
-                but: 'however', 
-                or: 'alternatively',
-                so: 'therefore'
-              };
-              return conjunctions[match.toLowerCase() as keyof typeof conjunctions] || match;
-            });
-          break;
-          
-        case 'fluency':
+            .replace(/\b(very|really|quite)\s+(\w+)/gi, "particularly $2")
+            .replace(/\b(big|large)\b/gi, "substantial")
+            .replace(/\b(small|little)\b/gi, "modest")
+          break
+
+        case "formal":
           paraphrased = inputText
-            .replace(/\b(very|really|quite)\s+(\w+)/gi, 'particularly $2')
-            .replace(/\b(big|large)\b/gi, 'substantial')
-            .replace(/\b(small|little)\b/gi, 'modest');
-          break;
-          
-        case 'formal':
+            .replace(/\b(gonna|going to)\b/gi, "will")
+            .replace(/\b(wanna|want to)\b/gi, "wish to")
+            .replace(/\b(can't|cannot)\b/gi, "is unable to")
+            .replace(/\b(use)\b/gi, "utilize")
+          break
+
+        case "simple":
           paraphrased = inputText
-            .replace(/\b(gonna|going to)\b/gi, 'will')
-            .replace(/\b(wanna|want to)\b/gi, 'wish to')
-            .replace(/\b(can't|cannot)\b/gi, 'is unable to')
-            .replace(/\b(use)\b/gi, 'utilize');
-          break;
-          
-        case 'simple':
-          paraphrased = inputText
-            .replace(/\b(utilize|employ)\b/gi, 'use')
-            .replace(/\b(commence|initiate)\b/gi, 'start')
-            .replace(/\b(demonstrate|exhibit)\b/gi, 'show');
-          break;
-          
-        case 'creative':
+            .replace(/\b(utilize|employ)\b/gi, "use")
+            .replace(/\b(commence|initiate)\b/gi, "start")
+            .replace(/\b(demonstrate|exhibit)\b/gi, "show")
+          break
+
+        case "creative":
           const creativeWords = {
-            good: ['excellent', 'remarkable', 'outstanding'],
-            bad: ['terrible', 'dreadful', 'awful'],
-            big: ['enormous', 'gigantic', 'massive'],
-            small: ['tiny', 'minuscule', 'compact']
-          };
+            good: ["excellent", "remarkable", "outstanding"],
+            bad: ["terrible", "dreadful", "awful"],
+            big: ["enormous", "gigantic", "massive"],
+            small: ["tiny", "minuscule", "compact"],
+          }
           Object.entries(creativeWords).forEach(([word, alternatives]) => {
-            const regex = new RegExp(`\\b${word}\\b`, 'gi');
+            const regex = new RegExp(`\\b${word}\\b`, "gi")
             paraphrased = paraphrased.replace(regex, () => {
-              return alternatives[Math.floor(Math.random() * alternatives.length)];
-            });
-          });
-          break;
-          
-        case 'expand':
-          paraphrased = inputText.replace(/\./g, ', providing additional context and detail.');
-          break;
-          
-        case 'shorten':
-          const sentences = inputText.split('.');
+              return alternatives[Math.floor(Math.random() * alternatives.length)]
+            })
+          })
+          break
+
+        case "expand":
+          paraphrased = inputText.replace(/\./g, ", providing additional context and detail.")
+          break
+
+        case "shorten":
+          const sentences = inputText.split(".")
           paraphrased = sentences
-            .map(sentence => sentence.split(' ').slice(0, Math.floor(sentence.split(' ').length * 0.7)).join(' '))
-            .join('.');
-          break;
-          
-        case 'academic':
+            .map((sentence) =>
+              sentence
+                .split(" ")
+                .slice(0, Math.floor(sentence.split(" ").length * 0.7))
+                .join(" "),
+            )
+            .join(".")
+          break
+
+        case "academic":
           paraphrased = inputText
-            .replace(/\b(use|used)\b/gi, 'employ')
-            .replace(/\b(show|shows)\b/gi, 'demonstrate')
-            .replace(/\b(help|helps)\b/gi, 'facilitate');
-          break;
+            .replace(/\b(use|used)\b/gi, "employ")
+            .replace(/\b(show|shows)\b/gi, "demonstrate")
+            .replace(/\b(help|helps)\b/gi, "facilitate")
+          break
       }
 
       if (synonymLevel > 70) {
         const synonymMap: { [key: string]: string[] } = {
-          important: ['crucial', 'vital', 'essential'],
-          beautiful: ['stunning', 'gorgeous', 'magnificent'],
-          difficult: ['challenging', 'complex', 'demanding'],
-          interesting: ['fascinating', 'captivating', 'intriguing']
-        };
-        
+          important: ["crucial", "vital", "essential"],
+          beautiful: ["stunning", "gorgeous", "magnificent"],
+          difficult: ["challenging", "complex", "demanding"],
+          interesting: ["fascinating", "captivating", "intriguing"],
+        }
+
         Object.entries(synonymMap).forEach(([word, alternatives]) => {
-          const regex = new RegExp(`\\b${word}\\b`, 'gi');
+          const regex = new RegExp(`\\b${word}\\b`, "gi")
           if (Math.random() > 0.5) {
             paraphrased = paraphrased.replace(regex, () => {
-              return alternatives[Math.floor(Math.random() * alternatives.length)];
-            });
+              return alternatives[Math.floor(Math.random() * alternatives.length)]
+            })
           }
-        });
+        })
       }
 
-      setOutputText(paraphrased);
-      setIsProcessing(false);
-    }, 2000);
-  };
+      setOutputText(paraphrased)
+      setIsProcessing(false)
+    }, 2000)
+  }
 
   const handleWordClick = (word: string, event: React.MouseEvent) => {
-    event.stopPropagation();
-    const cleanWord = word.replace(/[^\w]/g, '');
-    
+    event.stopPropagation()
+    const cleanWord = word.replace(/[^\w]/g, "")
+
     const synonymDatabase: { [key: string]: string[] } = {
-      good: ['excellent', 'great', 'fine', 'superb'],
-      bad: ['poor', 'terrible', 'awful', 'dreadful'],
-      big: ['large', 'huge', 'enormous', 'massive'],
-      small: ['tiny', 'little', 'minute', 'compact'],
-      use: ['utilize', 'employ', 'apply', 'deploy'],
-      make: ['create', 'produce', 'generate', 'build'],
-      important: ['crucial', 'vital', 'essential', 'significant'],
-      beautiful: ['stunning', 'gorgeous', 'lovely', 'attractive'],
-      difficult: ['challenging', 'hard', 'tough', 'complex'],
-      easy: ['simple', 'effortless', 'straightforward', 'basic']
-    };
-    
-    setSelectedWord(cleanWord);
-    const wordSynonyms = synonymDatabase[cleanWord.toLowerCase() as keyof typeof synonymDatabase] || 
-                        ['similar', 'equivalent', 'comparable'];
-    setSynonyms(wordSynonyms);
-  };
+      good: ["excellent", "great", "fine", "superb"],
+      bad: ["poor", "terrible", "awful", "dreadful"],
+      big: ["large", "huge", "enormous", "massive"],
+      small: ["tiny", "little", "minute", "compact"],
+      use: ["utilize", "employ", "apply", "deploy"],
+      make: ["create", "produce", "generate", "build"],
+      important: ["crucial", "vital", "essential", "significant"],
+      beautiful: ["stunning", "gorgeous", "lovely", "attractive"],
+      difficult: ["challenging", "hard", "tough", "complex"],
+      easy: ["simple", "effortless", "straightforward", "basic"],
+    }
+
+    setSelectedWord(cleanWord)
+    const wordSynonyms = synonymDatabase[cleanWord.toLowerCase() as keyof typeof synonymDatabase] || [
+      "similar",
+      "equivalent",
+      "comparable",
+    ]
+    setSynonyms(wordSynonyms)
+  }
 
   const replaceWord = (synonym: string) => {
     if (selectedWord && outputRef.current) {
-      const regex = new RegExp(`\\b${selectedWord}\\b`, 'gi');
-      const newText = outputText.replace(regex, synonym);
-      setOutputText(newText);
-      setSelectedWord(null);
-      setSynonyms([]);
+      const regex = new RegExp(`\\b${selectedWord}\\b`, "gi")
+      const newText = outputText.replace(regex, synonym)
+      setOutputText(newText)
+      setSelectedWord(null)
+      setSynonyms([])
     }
-  };
+  }
 
   const getSynonymLevelDescription = () => {
-    if (synonymLevel < 25) return 'Low creativity';
-    if (synonymLevel < 50) return 'Balanced approach';
-    if (synonymLevel < 75) return 'High creativity';
-    return 'Maximum creativity';
-  };
+    if (synonymLevel < 25) return "Low creativity"
+    if (synonymLevel < 50) return "Balanced approach"
+    if (synonymLevel < 75) return "High creativity"
+    return "Maximum creativity"
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -261,7 +271,9 @@ const ParaphraserPage: React.FC = () => {
               </div>
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Paraphraser</h1>
-                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">AI-powered text rephrasing for improved clarity and originality</p>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                  AI-powered text rephrasing for improved clarity and originality
+                </p>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
@@ -270,12 +282,12 @@ const ParaphraserPage: React.FC = () => {
                 <span className="hidden sm:inline">Integrations</span>
                 <span className="sm:hidden">Apps</span>
               </button>
-              <button 
+              <button
                 onClick={() => setIsPremium(!isPremium)}
                 className="px-3 py-2 sm:px-4 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors text-xs sm:text-sm"
               >
-                <span className="hidden sm:inline">{isPremium ? 'Free Version' : 'Upgrade to Premium'}</span>
-                <span className="sm:hidden">{isPremium ? 'Free' : 'Premium'}</span>
+                <span className="hidden sm:inline">{isPremium ? "Free Version" : "Upgrade to Premium"}</span>
+                <span className="sm:hidden">{isPremium ? "Free" : "Premium"}</span>
               </button>
             </div>
           </div>
@@ -292,18 +304,18 @@ const ParaphraserPage: React.FC = () => {
               {mobileSettingsOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
             </button>
           </div>
-          
-          <div className={`${mobileSettingsOpen ? 'block' : 'hidden'} lg:block p-3 sm:p-4`}>
+
+          <div className={`${mobileSettingsOpen ? "block" : "hidden"} lg:block p-3 sm:p-4`}>
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-4 sm:gap-6">
                 <div className="flex items-center space-x-2">
                   <Globe className="w-4 h-4 text-gray-600 flex-shrink-0" />
-                  <select 
+                  <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
                     className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 min-w-0"
                   >
-                    {languages.map(lang => (
+                    {languages.map((lang) => (
                       <option key={lang.id} value={lang.id}>
                         {lang.flag} {lang.name}
                       </option>
@@ -329,18 +341,18 @@ const ParaphraserPage: React.FC = () => {
                   <select
                     value={mode}
                     onChange={(e) => {
-                      const selectedMode = allModes.find(m => m.id === e.target.value);
+                      const selectedMode = allModes.find((m) => m.id === e.target.value)
                       if (selectedMode?.premium && !isPremium) {
-                        setShowUpgradeModal(true);
+                        setShowUpgradeModal(true)
                       } else {
-                        setMode(e.target.value);
+                        setMode(e.target.value)
                       }
                     }}
                     className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 min-w-0"
                   >
-                    {allModes.map(modeOption => (
+                    {allModes.map((modeOption) => (
                       <option key={modeOption.id} value={modeOption.id}>
-                        {modeOption.name} {modeOption.premium && !isPremium ? '(Premium)' : ''}
+                        {modeOption.name} {modeOption.premium && !isPremium ? "(Premium)" : ""}
                       </option>
                     ))}
                   </select>
@@ -369,7 +381,7 @@ const ParaphraserPage: React.FC = () => {
                   <div className="flex items-center space-x-2 sm:space-x-4">
                     <span>{inputText.length} characters</span>
                     <span>•</span>
-                    <span>{inputText.split(' ').filter(w => w.trim()).length} words</span>
+                    <span>{inputText.split(" ").filter((w) => w.trim()).length} words</span>
                   </div>
                   <button
                     onClick={handleParaphrase}
@@ -404,14 +416,14 @@ const ParaphraserPage: React.FC = () => {
                 type="file"
                 accept=".txt,.doc,.docx,.pdf"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
+                  const file = e.target.files?.[0]
                   if (file) {
-                    const reader = new FileReader();
+                    const reader = new FileReader()
                     reader.onload = (event) => {
-                      const content = event.target?.result as string;
-                      setInputText(content);
-                    };
-                    reader.readAsText(file);
+                      const content = event.target?.result as string
+                      setInputText(content)
+                    }
+                    reader.readAsText(file)
                   }
                 }}
                 className="hidden"
@@ -434,13 +446,13 @@ const ParaphraserPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      const blob = new Blob([outputText], { type: 'text/plain' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'paraphrased-text.txt';
-                      a.click();
-                      URL.revokeObjectURL(url);
+                      const blob = new Blob([outputText], { type: "text/plain" })
+                      const url = URL.createObjectURL(blob)
+                      const a = document.createElement("a")
+                      a.href = url
+                      a.download = "paraphrased-text.txt"
+                      a.click()
+                      URL.revokeObjectURL(url)
                     }}
                     className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
                     title="Download"
@@ -457,20 +469,20 @@ const ParaphraserPage: React.FC = () => {
                   ref={outputRef}
                   className="p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-60 sm:min-h-80 max-h-80 sm:max-h-96 overflow-y-auto cursor-pointer"
                   onClick={() => {
-                    setSelectedWord(null);
-                    setSynonyms([]);
+                    setSelectedWord(null)
+                    setSynonyms([])
                   }}
                 >
                   <div className="relative">
                     <p className="text-gray-900 leading-relaxed text-sm sm:text-base">
-                      {outputText.split(' ').map((word, index) => (
+                      {outputText.split(" ").map((word, index) => (
                         <span
                           key={index}
                           onClick={(e) => handleWordClick(word, e)}
                           className="hover:bg-blue-100 rounded px-1 transition-colors duration-200 cursor-pointer"
                           title="Click for synonyms"
                         >
-                          {word}{' '}
+                          {word}{" "}
                         </span>
                       ))}
                     </p>
@@ -495,10 +507,10 @@ const ParaphraserPage: React.FC = () => {
                     )}
                   </div>
                 </div>
-                
+
                 <div className="text-xs sm:text-sm text-gray-600 space-y-1">
-                  <div>Mode: {allModes.find(m => m.id === mode)?.name}</div>
-                  <div>Language: {languages.find(l => l.id === language)?.name}</div>
+                  <div>Mode: {allModes.find((m) => m.id === mode)?.name}</div>
+                  <div>Language: {languages.find((l) => l.id === language)?.name}</div>
                   <div>Creativity Level: {synonymLevel}%</div>
                   <div className="text-xs text-blue-600 mt-2">💡 Click any word above for synonyms</div>
                 </div>
@@ -532,9 +544,9 @@ const ParaphraserPage: React.FC = () => {
                   </button>
                   <button
                     onClick={() => {
-                      setIsPremium(true);
-                      setShowUpgradeModal(false);
-                      setMode(mode);
+                      setIsPremium(true)
+                      setShowUpgradeModal(false)
+                      setMode(mode)
                     }}
                     className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
                   >
@@ -572,7 +584,7 @@ const ParaphraserPage: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ParaphraserPage;
+export default ParaphraserPage
