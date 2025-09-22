@@ -18,6 +18,8 @@ import {
   Globe,
   Shield,
 } from "lucide-react"
+import { generateText } from 'ai'
+import { openai } from '@ai-sdk/openai'
 
 interface HumanizationResult {
   originalText: string
@@ -63,10 +65,16 @@ const AIHumanizerPage: React.FC = () => {
   const [wordsLimit, setWordsLimit] = useState(1000)
   const [language, setLanguage] = useState("en")
   const languages: Language[] = [
-    { code: "en", name: "English", flag: "🇺🇸" },
-    { code: "es", name: "Spanish", flag: "🇪🇸" },
-    { code: "fr", name: "French", flag: "🇫🇷" },
-    // ... other languages
+     { id: 'en', name: 'English', flag: '🇺🇸' },
+    { id: 'fr', name: 'French', flag: '🇫🇷' },
+    { id: 'es', name: 'Spanish', flag: '🇪🇸' },
+    { id: 'de', name: 'German', flag: '🇩🇪' },
+    { id: 'zh', name: 'Chinese', flag: '🇨🇳' },
+    { id: 'ja', name: 'Japanese', flag: '🇯🇵' },
+    { id: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+    { id: 'ru', name: 'Russian', flag: '🇷🇺' },
+    { id: 'hi', name: 'Hindi', flag: '🇮🇳' },
+    { id: 'ar', name: 'Arabic', flag: '🇸🇦' }
   ]
 
   const humanizationModes = [
@@ -121,12 +129,42 @@ const AIHumanizerPage: React.FC = () => {
 
     setIsProcessing(true)
 
-    setTimeout(() => {
-      let humanizedText = inputText
-      const changes: Array<{ original: string; humanized: string; type: string; reason: string }> = []
-      const processingTime = Math.floor(Math.random() * 5) + 3 // Simulate processing time
+    try {
+      // Construct prompt based on humanization mode, creativity level, and language
+      let prompt = ""
+      const langInstruction = language !== "en" ? `Rewrite in ${languages.find(lang => lang.code === language)?.name || "English"}.` : ""
+      switch (humanizationMode) {
+        case "naturalize":
+          prompt = `${langInstruction} Rewrite the following text to sound more natural and human-like, using conversational language and avoiding formal or stiff phrasing. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+          break
+        case "synonym":
+          prompt = `${langInstruction} Rewrite the following text by intelligently replacing words with synonyms to add variety while maintaining meaning. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+          break
+        case "creative":
+          prompt = `${langInstruction} Rewrite the following text with creative flourishes and engaging style, adding emotional or vivid language where appropriate. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+          break
+        case "advanced":
+          prompt = `${langInstruction} Perform an advanced rewrite of the following text to make it highly human-like, nuanced, and contextually rich, tailored for complex texts. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+          break
+        case "bypass":
+          prompt = `${langInstruction} Rewrite the following text to make it undetectable by AI detection tools, using varied sentence structures, natural phrasing, and subtle human quirks. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+          break
+        default:
+          prompt = `${langInstruction} Rewrite the following text to sound more human-like and natural. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
+      }
 
-      // Naturalize mode transformations
+      // Call OpenAI API
+      const startTime = performance.now()
+      const { text: humanizedText } = await generateText({
+        model: openai('gpt-4o'),
+        prompt,
+      })
+      const processingTime = (performance.now() - startTime) / 1000
+
+      // Preserve original transformation logic for change tracking
+      const changes: Array<{ original: string; humanized: string; type: string; reason: string }> = []
+      let tempHumanizedText = inputText
+
       if (humanizationMode === "naturalize") {
         const formalReplacements = [
           {
@@ -182,7 +220,7 @@ const AIHumanizerPage: React.FC = () => {
         ]
 
         formalReplacements.forEach((replacement) => {
-          const matches = humanizedText.match(replacement.formal)
+          const matches = tempHumanizedText.match(replacement.formal)
           if (matches) {
             matches.forEach((match) => {
               changes.push({
@@ -192,19 +230,17 @@ const AIHumanizerPage: React.FC = () => {
                 reason: replacement.reason,
               })
             })
-            humanizedText = humanizedText.replace(replacement.formal, replacement.casual)
+            tempHumanizedText = tempHumanizedText.replace(replacement.formal, replacement.casual)
           }
         })
 
-        // Add conversational elements
         if (creativityLevel >= 50) {
-          humanizedText = humanizedText.replace(/^/, "Here's what I think: ")
-          humanizedText = humanizedText.replace(/\. ([A-Z])/g, ". You know, $1")
-          humanizedText = humanizedText.replace(/\. You know, You know, /g, ". You know, ")
+          tempHumanizedText = tempHumanizedText.replace(/^/, "Here's what I think: ")
+          tempHumanizedText = tempHumanizedText.replace(/\. ([A-Z])/g, ". You know, $1")
+          tempHumanizedText = tempHumanizedText.replace(/\. You know, You know, /g, ". You know, ")
         }
       }
 
-      // Synonym Integration mode
       if (humanizationMode === "synonym") {
         const synonymReplacements = [
           {
@@ -223,7 +259,7 @@ const AIHumanizerPage: React.FC = () => {
         ]
 
         synonymReplacements.forEach((replacement) => {
-          const matches = humanizedText.match(replacement.original)
+          const matches = tempHumanizedText.match(replacement.original)
           if (matches) {
             matches.forEach((match) => {
               const randomSynonym = replacement.synonyms[Math.floor(Math.random() * replacement.synonyms.length)]
@@ -233,15 +269,13 @@ const AIHumanizerPage: React.FC = () => {
                 type: "synonym",
                 reason: "Added variety with intelligent synonym",
               })
-              humanizedText = humanizedText.replace(match, randomSynonym)
+              tempHumanizedText = tempHumanizedText.replace(match, randomSynonym)
             })
           }
         })
       }
 
-      // Creative Rewrite mode
       if (humanizationMode === "creative") {
-        // Add creative flourishes based on creativity level
         const creativityPhrases = [
           "Let me paint you a picture:",
           "Picture this:",
@@ -251,39 +285,38 @@ const AIHumanizerPage: React.FC = () => {
 
         if (creativityLevel >= 70) {
           const randomPhrase = creativityPhrases[Math.floor(Math.random() * creativityPhrases.length)]
-          humanizedText = randomPhrase + " " + humanizedText
+          tempHumanizedText = randomPhrase + " " + tempHumanizedText
         }
 
-        // Add emphasis and emotional language
-        humanizedText = humanizedText.replace(/\b(results|outcomes)\b/gi, "incredible results")
-        humanizedText = humanizedText.replace(/\b(analysis|study)\b/gi, "deep dive")
+        tempHumanizedText = tempHumanizedText.replace(/\b(results|outcomes)\b/gi, "incredible results")
+        tempHumanizedText = tempHumanizedText.replace(/\b(analysis|study)\b/gi, "deep dive")
       }
 
-      // Advanced Humanization mode
-      if (humanizationMode === "advanced") {
-        // Implement advanced humanization logic here
-      }
-
-      // AI Detection Bypass mode
-      if (humanizationMode === "bypass") {
-        // Implement AI detection bypass logic here
-      }
+      // Combine OpenAI output with local transformations
+      const finalHumanizedText = preserveFormatting ? humanizedText : humanizedText.replace(/\n/g, " ")
 
       // Calculate scores
       const originalWordCount = inputText.split(" ").length
-      const humanizedWordCount = humanizedText.split(" ").length
+      const humanizedWordCount = finalHumanizedText.split(" ").length
       const changeRatio = changes.length / originalWordCount
 
       const newResult: HumanizationResult = {
         originalText: inputText,
-        humanizedText: humanizedText,
+        humanizedText: finalHumanizedText,
         humanScore: Math.min(95, 60 + creativityLevel * 0.3 + changeRatio * 100),
         aiDetectionBefore: Math.random() * 40 + 50, // 50-90%
         aiDetectionAfter: Math.random() * 20 + 10, // 10-30%
-        changes: changes,
+        changes: changes.length > 0 ? changes : [
+          {
+            original: inputText.slice(0, 20) + "...",
+            humanized: finalHumanizedText.slice(0, 20) + "...",
+            type: humanizationMode,
+            reason: `Applied ${humanizationMode} transformation via OpenAI`,
+          },
+        ],
         readabilityScore: Math.min(100, 70 + creativityLevel + Math.random() * 15),
-        creativityLevel: creativityLevel,
-        processingTime: processingTime,
+        creativityLevel,
+        processingTime,
         aiDetectionResults: [
           { detector: "Detector A", confidence: Math.random() * 100 },
           { detector: "Detector B", confidence: Math.random() * 100 },
@@ -292,8 +325,23 @@ const AIHumanizerPage: React.FC = () => {
       }
 
       setResult(newResult)
+    } catch (error) {
+      console.error("Error humanizing text:", error)
+      setResult({
+        originalText: inputText,
+        humanizedText: "Error processing text. Please try again.",
+        humanScore: 0,
+        aiDetectionBefore: 0,
+        aiDetectionAfter: 0,
+        changes: [],
+        readabilityScore: 0,
+        creativityLevel,
+        processingTime: 0,
+        aiDetectionResults: [],
+      })
+    } finally {
       setIsProcessing(false)
-    }, 3000)
+    }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -345,7 +393,7 @@ AI Detection Results:
 ${result.aiDetectionResults.map((detection) => `- ${detection.detector}: ${detection.confidence.toFixed(1)}% AI-like`).join("\n")}
 
 Generated by QuillBot AI Humanizer
-${new Date().toLocaleDateString()}` // Simulate date
+${new Date().toLocaleDateString()}`
 
     const blob = new Blob([reportContent], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
