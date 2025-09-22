@@ -65,16 +65,31 @@ const AIHumanizerPage: React.FC = () => {
   const [wordsLimit, setWordsLimit] = useState(1000)
   const [language, setLanguage] = useState("en")
   const languages: Language[] = [
-     { id: 'en', name: 'English', flag: '🇺🇸' },
-    { id: 'fr', name: 'French', flag: '🇫🇷' },
-    { id: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { id: 'de', name: 'German', flag: '🇩🇪' },
-    { id: 'zh', name: 'Chinese', flag: '🇨🇳' },
-    { id: 'ja', name: 'Japanese', flag: '🇯🇵' },
-    { id: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-    { id: 'ru', name: 'Russian', flag: '🇷🇺' },
-    { id: 'hi', name: 'Hindi', flag: '🇮🇳' },
-    { id: 'ar', name: 'Arabic', flag: '🇸🇦' }
+    { id: "en-US", name: "English (US)", flag: "🇺🇸" },
+    { id: "en-GB", name: "English (UK)", flag: "🇬🇧" },
+    { id: "en-AU", name: "English (AU)", flag: "🇦🇺" },
+    { id: "en-CA", name: "English (CA)", flag: "🇨🇦" },
+    { id: "fr", name: "French", flag: "🇫🇷" },
+    { id: "es", name: "Spanish", flag: "🇪🇸" },
+    { id: "de", name: "German", flag: "🇩🇪" },
+    { id: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
+    { id: "hi", name: "Hindi", flag: "🇮🇳" },
+    { id: "ru", name: "Russian", flag: "🇷🇺" },
+    { id: "da", name: "Danish", flag: "🇩🇰" },
+    { id: "nl", name: "Dutch", flag: "🇳🇱" },
+    { id: "it", name: "Italian", flag: "🇮🇹" },
+    { id: "ja", name: "Japanese", flag: "🇯🇵" },
+    { id: "ko", name: "Korean", flag: "🇰🇷" },
+    { id: "pl", name: "Polish", flag: "🇵🇱" },
+    { id: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
+    { id: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
+    { id: "sv", name: "Swedish", flag: "🇸🇪" },
+    { id: "tr", name: "Turkish", flag: "🇹🇷" },
+    { id: "ar", name: "Arabic", flag: "🇸🇦" },
+    { id: "th", name: "Thai", flag: "🇹🇭" },
+    { id: "vi", name: "Vietnamese", flag: "🇻🇳" },
+    { id: "uk", name: "Ukrainian", flag: "🇺🇦" },
+    { id: "ro", name: "Romanian", flag: "🇷🇴" }
   ]
 
   const humanizationModes = [
@@ -129,6 +144,25 @@ const AIHumanizerPage: React.FC = () => {
 
     setIsProcessing(true)
 
+    // Check for API key
+    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    if (!apiKey) {
+      setResult({
+        originalText: inputText,
+        humanizedText: "Error: OpenAI API key is missing. Please configure it in environment variables.",
+        humanScore: 0,
+        aiDetectionBefore: 0,
+        aiDetectionAfter: 0,
+        changes: [],
+        readabilityScore: 0,
+        creativityLevel,
+        processingTime: 0,
+        aiDetectionResults: [],
+      })
+      setIsProcessing(false)
+      return
+    }
+
     try {
       // Construct prompt based on humanization mode, creativity level, and language
       let prompt = ""
@@ -153,10 +187,10 @@ const AIHumanizerPage: React.FC = () => {
           prompt = `${langInstruction} Rewrite the following text to sound more human-like and natural. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
       }
 
-      // Call OpenAI API
+      // Call OpenAI API with explicit API key
       const startTime = performance.now()
       const { text: humanizedText } = await generateText({
-        model: openai('gpt-4o'),
+        model: openai('gpt-4o', { apiKey }),
         prompt,
       })
       const processingTime = (performance.now() - startTime) / 1000
@@ -329,7 +363,7 @@ const AIHumanizerPage: React.FC = () => {
       console.error("Error humanizing text:", error)
       setResult({
         originalText: inputText,
-        humanizedText: "Error processing text. Please try again.",
+        humanizedText: "Error processing text. Please check API configuration and try again.",
         humanScore: 0,
         aiDetectionBefore: 0,
         aiDetectionAfter: 0,
@@ -407,7 +441,6 @@ ${new Date().toLocaleDateString()}`
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
-        {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
@@ -439,8 +472,6 @@ ${new Date().toLocaleDateString()}`
               </button>
             </div>
           </div>
-
-          {/* Usage Bar */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs sm:text-sm font-medium text-gray-700">Words Used This Month</span>
@@ -465,14 +496,11 @@ ${new Date().toLocaleDateString()}`
             </div>
           </div>
         </div>
-
-        {/* Humanization Mode Selection */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">Humanization Mode</h3>
             <span className="text-xs sm:text-sm text-gray-500">Choose your preferred style</span>
           </div>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
             {humanizationModes.map((mode) => {
               const IconComponent = mode.icon
@@ -503,8 +531,6 @@ ${new Date().toLocaleDateString()}`
             })}
           </div>
         </div>
-
-        {/* Settings Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-3 sm:gap-4 lg:gap-6">
@@ -522,7 +548,6 @@ ${new Date().toLocaleDateString()}`
                   ))}
                 </select>
               </div>
-
               <div className="flex items-center space-x-2">
                 <span className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">Creativity Level:</span>
                 <input
@@ -535,7 +560,6 @@ ${new Date().toLocaleDateString()}`
                 />
                 <span className="text-xs text-gray-500 min-w-max">{getCreativityDescription()}</span>
               </div>
-
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -549,7 +573,6 @@ ${new Date().toLocaleDateString()}`
                 </label>
               </div>
             </div>
-
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
@@ -560,11 +583,8 @@ ${new Date().toLocaleDateString()}`
             </button>
           </div>
         </div>
-
         <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Input Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-            {/* File Upload Area */}
             {files.length > 0 && (
               <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Uploaded Files</h4>
@@ -589,7 +609,6 @@ ${new Date().toLocaleDateString()}`
                 </div>
               </div>
             )}
-
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900">AI-Generated Text</h2>
@@ -614,14 +633,12 @@ ${new Date().toLocaleDateString()}`
                   )}
                 </div>
               </div>
-
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Paste your AI-generated text here to humanize it and make it undetectable by AI detection tools..."
                 className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
               />
-
               <input
                 ref={fileInputRef}
                 type="file"
@@ -630,7 +647,6 @@ ${new Date().toLocaleDateString()}`
                 onChange={handleFileUpload}
                 className="hidden"
               />
-
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <div className="flex items-center space-x-2 sm:space-x-4">
@@ -666,8 +682,6 @@ ${new Date().toLocaleDateString()}`
               </div>
             </div>
           </div>
-
-          {/* Output Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900">Humanized Text</h2>
@@ -690,7 +704,6 @@ ${new Date().toLocaleDateString()}`
                 </div>
               )}
             </div>
-
             <div className="h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg bg-gray-50 overflow-y-auto">
               {result ? (
                 <div className="text-gray-900 leading-relaxed text-sm sm:text-base">{result.humanizedText}</div>
@@ -703,8 +716,6 @@ ${new Date().toLocaleDateString()}`
                 </div>
               )}
             </div>
-
-            {/* Results Metrics */}
             {result && (
               <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
@@ -719,8 +730,6 @@ ${new Date().toLocaleDateString()}`
                 </div>
               </div>
             )}
-
-            {/* AI Detection Results */}
             {result && result.aiDetectionResults && (
               <div className="mt-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                 <h4 className="font-medium text-yellow-900 mb-3 text-sm sm:text-base">AI Detection Results</h4>
@@ -748,8 +757,6 @@ ${new Date().toLocaleDateString()}`
             )}
           </div>
         </div>
-
-        {/* Premium Modal */}
         {showPremiumModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
@@ -762,7 +769,6 @@ ${new Date().toLocaleDateString()}`
                   Unlock unlimited humanization and advanced features
                 </p>
               </div>
-
               <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                 <div className="flex items-center space-x-3">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
@@ -781,7 +787,6 @@ ${new Date().toLocaleDateString()}`
                   <span className="text-xs sm:text-sm">Bulk document processing</span>
                 </div>
               </div>
-
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowPremiumModal(false)}
@@ -796,8 +801,6 @@ ${new Date().toLocaleDateString()}`
             </div>
           </div>
         )}
-
-        {/* Features Section */}
         <div className="mt-8 sm:mt-12 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
