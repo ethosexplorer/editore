@@ -2,7 +2,6 @@
 
 import type React from "react"
 import { useState, useRef } from "react"
-import 'dotenv/config'
 import {
   Users,
   Zap,
@@ -19,8 +18,7 @@ import {
   Globe,
   Shield,
 } from "lucide-react"
-import { generateText } from 'ai'
-import { openai } from '@ai-sdk/openai'
+import OpenAI from 'openai'
 
 interface HumanizationResult {
   originalText: string
@@ -49,6 +47,10 @@ interface Language {
   flag: string
 }
 
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+})
+
 const AIHumanizerPage: React.FC = () => {
   const [inputText, setInputText] = useState("")
   const [result, setResult] = useState<HumanizationResult | null>(null)
@@ -66,31 +68,31 @@ const AIHumanizerPage: React.FC = () => {
   const [wordsLimit, setWordsLimit] = useState(1000)
   const [language, setLanguage] = useState("en")
   const languages: Language[] = [
-    { id: "en-US", name: "English (US)", flag: "🇺🇸" },
-    { id: "en-GB", name: "English (UK)", flag: "🇬🇧" },
-    { id: "en-AU", name: "English (AU)", flag: "🇦🇺" },
-    { id: "en-CA", name: "English (CA)", flag: "🇨🇦" },
-    { id: "fr", name: "French", flag: "🇫🇷" },
-    { id: "es", name: "Spanish", flag: "🇪🇸" },
-    { id: "de", name: "German", flag: "🇩🇪" },
-    { id: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
-    { id: "hi", name: "Hindi", flag: "🇮🇳" },
-    { id: "ru", name: "Russian", flag: "🇷🇺" },
-    { id: "da", name: "Danish", flag: "🇩🇰" },
-    { id: "nl", name: "Dutch", flag: "🇳🇱" },
-    { id: "it", name: "Italian", flag: "🇮🇹" },
-    { id: "ja", name: "Japanese", flag: "🇯🇵" },
-    { id: "ko", name: "Korean", flag: "🇰🇷" },
-    { id: "pl", name: "Polish", flag: "🇵🇱" },
-    { id: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
-    { id: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
-    { id: "sv", name: "Swedish", flag: "🇸🇪" },
-    { id: "tr", name: "Turkish", flag: "🇹🇷" },
-    { id: "ar", name: "Arabic", flag: "🇸🇦" },
-    { id: "th", name: "Thai", flag: "🇹🇭" },
-    { id: "vi", name: "Vietnamese", flag: "🇻🇳" },
-    { id: "uk", name: "Ukrainian", flag: "🇺🇦" },
-    { id: "ro", name: "Romanian", flag: "🇷🇴" }
+    { code: "en-US", name: "English (US)", flag: "🇺🇸" },
+    { code: "en-GB", name: "English (UK)", flag: "🇬🇧" },
+    { code: "en-AU", name: "English (AU)", flag: "🇦🇺" },
+    { code: "en-CA", name: "English (CA)", flag: "🇨🇦" },
+    { code: "fr", name: "French", flag: "🇫🇷" },
+    { code: "es", name: "Spanish", flag: "🇪🇸" },
+    { code: "de", name: "German", flag: "🇩🇪" },
+    { code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
+    { code: "hi", name: "Hindi", flag: "🇮🇳" },
+    { code: "ru", name: "Russian", flag: "🇷🇺" },
+    { code: "da", name: "Danish", flag: "🇩🇰" },
+    { code: "nl", name: "Dutch", flag: "🇳🇱" },
+    { code: "it", name: "Italian", flag: "🇮🇹" },
+    { code: "ja", name: "Japanese", flag: "🇯🇵" },
+    { code: "ko", name: "Korean", flag: "🇰🇷" },
+    { code: "pl", name: "Polish", flag: "🇵🇱" },
+    { code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
+    { code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
+    { code: "sv", name: "Swedish", flag: "🇸🇪" },
+    { code: "tr", name: "Turkish", flag: "🇹🇷" },
+    { code: "ar", name: "Arabic", flag: "🇸🇦" },
+    { code: "th", name: "Thai", flag: "🇹🇭" },
+    { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
+    { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
+    { code: "ro", name: "Romanian", flag: "🇷🇴" }
   ]
 
   const humanizationModes = [
@@ -145,8 +147,7 @@ const AIHumanizerPage: React.FC = () => {
 
     setIsProcessing(true)
 
-    // Check for API key
-    const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY
+    const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) {
       setResult({
         originalText: inputText,
@@ -165,7 +166,6 @@ const AIHumanizerPage: React.FC = () => {
     }
 
     try {
-      // Construct prompt based on humanization mode, creativity level, and language
       let prompt = ""
       const langInstruction = language !== "en" ? `Rewrite in ${languages.find(lang => lang.code === language)?.name || "English"}.` : ""
       switch (humanizationMode) {
@@ -188,15 +188,14 @@ const AIHumanizerPage: React.FC = () => {
           prompt = `${langInstruction} Rewrite the following text to sound more human-like and natural. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
       }
 
-      // Call OpenAI API with explicit API key
       const startTime = performance.now()
-      const { text: humanizedText } = await generateText({
-        model: openai('gpt-4o', { apiKey }),
-        prompt,
+      const response = await client.chat.completions.create({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: prompt }],
       })
+      const humanizedText = response.choices[0]?.message?.content || "Error: No response from API"
       const processingTime = (performance.now() - startTime) / 1000
 
-      // Preserve original transformation logic for change tracking
       const changes: Array<{ original: string; humanized: string; type: string; reason: string }> = []
       let tempHumanizedText = inputText
 
@@ -264,8 +263,8 @@ const AIHumanizerPage: React.FC = () => {
                 type: replacement.type,
                 reason: replacement.reason,
               })
+              tempHumanizedText = tempHumanizedText.replace(replacement.formal, replacement.casual)
             })
-            tempHumanizedText = tempHumanizedText.replace(replacement.formal, replacement.casual)
           }
         })
 
@@ -327,10 +326,8 @@ const AIHumanizerPage: React.FC = () => {
         tempHumanizedText = tempHumanizedText.replace(/\b(analysis|study)\b/gi, "deep dive")
       }
 
-      // Combine OpenAI output with local transformations
       const finalHumanizedText = preserveFormatting ? humanizedText : humanizedText.replace(/\n/g, " ")
 
-      // Calculate scores
       const originalWordCount = inputText.split(" ").length
       const humanizedWordCount = finalHumanizedText.split(" ").length
       const changeRatio = changes.length / originalWordCount
@@ -339,8 +336,8 @@ const AIHumanizerPage: React.FC = () => {
         originalText: inputText,
         humanizedText: finalHumanizedText,
         humanScore: Math.min(95, 60 + creativityLevel * 0.3 + changeRatio * 100),
-        aiDetectionBefore: Math.random() * 40 + 50, // 50-90%
-        aiDetectionAfter: Math.random() * 20 + 10, // 10-30%
+        aiDetectionBefore: Math.random() * 40 + 50,
+        aiDetectionAfter: Math.random() * 20 + 10,
         changes: changes.length > 0 ? changes : [
           {
             original: inputText.slice(0, 20) + "...",
