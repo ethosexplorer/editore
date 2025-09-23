@@ -3,25 +3,37 @@
 import type React from "react"
 import { useState, useEffect } from "react"
 import { Link, useLocation } from "react-router-dom"
-import { Edit3, Menu, X } from "lucide-react"
+import { Edit3, Menu, X, ChevronDown } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
 const Header: React.FC = () => {
   const [activeItem, setActiveItem] = useState("")
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [openSubMenu, setOpenSubMenu] = useState<string | null>(null)
   const location = useLocation()
 
   const menuItems = [
-    { name: "AI Detector", path: "/ai-detector" },
     { name: "Paraphraser", path: "/paraphraser" },
-    { name: "Grammar Checker", path: "/grammar-checker" },
+    { name: "Grammar & Style", path: "/grammar-style" },
     { name: "Summarizer", path: "/summarizer" },
-    { name: "Plagiarism Checker", path: "/plagiarism-checker" },
-    { name: "AI Humanizer", path: "/ai-humanizer" },
-    { name: "Citation Generator", path: "/citation-generator" },
+    { name: "Originality Check", path: "/originality-check" },
+    {
+      name: "AI Content Tools",
+      subItems: [
+        { name: "AI Detector", path: "/ai-detector" },
+        { name: "AI Humanizer", path: "/ai-humanizer" },
+      ],
+    },
+    {
+      name: "Research Writing",
+      subItems: [
+        { name: "Research Assistant", path: "/research-assistant" },
+        { name: "Citation Generator", path: "/citation-generator" },
+        { name: "Journal Templates", path: "/journal-templates" },
+      ],
+    },
     { name: "Translator", path: "/translator" },
-    { name: "AI research writing assistant", path: "/co-writer" },
   ]
 
   // Handle scroll effect
@@ -34,9 +46,10 @@ const Header: React.FC = () => {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  // Close mobile menu when route changes
+  // Close mobile menu and submenus when route changes
   useEffect(() => {
     setIsMobileMenuOpen(false)
+    setOpenSubMenu(null)
   }, [location.pathname])
 
   // Prevent body scroll when mobile menu is open
@@ -54,6 +67,11 @@ const Header: React.FC = () => {
 
   const toggleMobileMenu = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen)
+    setOpenSubMenu(null) // Close submenus when toggling mobile menu
+  }
+
+  const toggleSubMenu = (name: string) => {
+    setOpenSubMenu(openSubMenu === name ? null : name)
   }
 
   return (
@@ -83,26 +101,66 @@ const Header: React.FC = () => {
           {/* Desktop Navigation */}
           <nav className="hidden xl:flex items-center space-x-0 ml-16">
             {menuItems.map((item) => (
-              <Link
+              <div
                 key={item.name}
-                to={item.path}
-                className={`relative text-sm font-semibold transition-all duration-300 group px-2 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-teal-50 ${
-                  location.pathname === item.path
-                    ? "text-blue-600 bg-gradient-to-r from-blue-50 to-teal-50"
-                    : "text-gray-700 hover:text-gray-900"
-                }`}
+                className="relative"
                 onMouseEnter={() => setActiveItem(item.name)}
                 onMouseLeave={() => setActiveItem("")}
               >
-                {item.name}
-                <div
-                  className={`absolute -bottom-1 left-2 right-2 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-300 ${
-                    activeItem === item.name || location.pathname === item.path
-                      ? "opacity-100 scale-x-100"
-                      : "opacity-0 scale-x-0"
-                  }`}
-                />
-              </Link>
+                {item.path ? (
+                  <Link
+                    to={item.path}
+                    className={`relative text-sm font-semibold transition-all duration-300 group px-2 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-teal-50 ${
+                      location.pathname === item.path
+                        ? "text-blue-600 bg-gradient-to-r from-blue-50 to-teal-50"
+                        : "text-gray-700 hover:text-gray-900"
+                    }`}
+                  >
+                    {item.name}
+                    <div
+                      className={`absolute -bottom-1 left-2 right-2 h-0.5 bg-gradient-to-r from-blue-500 to-teal-400 rounded-full transition-all duration-300 ${
+                        activeItem === item.name || location.pathname === item.path
+                          ? "opacity-100 scale-x-100"
+                          : "opacity-0 scale-x-0"
+                      }`}
+                    />
+                  </Link>
+                ) : (
+                  <div
+                    className={`relative text-sm font-semibold transition-all duration-300 group px-2 py-2.5 rounded-xl hover:bg-gradient-to-r hover:from-blue-50 hover:to-teal-50 ${
+                      activeItem === item.name ? "text-blue-600 bg-gradient-to-r from-blue-50 to-teal-50" : "text-gray-700 hover:text-gray-900"
+                    } flex items-center cursor-pointer`}
+                  >
+                    {item.name}
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                    <AnimatePresence>
+                      {activeItem === item.name && item.subItems && (
+                        <motion.div
+                          className="absolute top-full left-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-2 z-50"
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {item.subItems.map((subItem) => (
+                            <Link
+                              key={subItem.name}
+                              to={subItem.path}
+                              className={`block px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                location.pathname === subItem.path
+                                  ? "text-blue-600 bg-blue-50"
+                                  : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                              }`}
+                            >
+                              {subItem.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -161,7 +219,7 @@ const Header: React.FC = () => {
 
             {/* Menu Content */}
             <motion.div
-              className="absolute top-16 lg:top-20 left-0 right-0 bottom-0 bg-white"
+              className="absolute top-16 lg:top-20 left-0 right-0 bottom-0 bg-white overflow-y-auto"
               initial={{ y: -20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: -20, opacity: 0 }}
@@ -177,25 +235,71 @@ const Header: React.FC = () => {
                       animate={{ x: 0, opacity: 1 }}
                       transition={{ delay: index * 0.05, duration: 0.3 }}
                     >
-                      <Link
-                        to={item.path}
-                        className={`flex items-center px-4 py-4 rounded-xl transition-all duration-300 ${
-                          location.pathname === item.path
-                            ? "bg-gradient-to-r from-blue-50 to-teal-50 text-blue-600 border border-blue-100"
-                            : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
-                        }`}
-                        onClick={toggleMobileMenu}
-                      >
-                        <span className="font-medium">{item.name}</span>
-                        {location.pathname === item.path && (
-                          <motion.div
-                            className="ml-auto w-2 h-2 bg-blue-500 rounded-full"
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            transition={{ delay: 0.2 }}
-                          />
-                        )}
-                      </Link>
+                      {item.path ? (
+                        <Link
+                          to={item.path}
+                          className={`flex items-center px-4 py-4 rounded-xl transition-all duration-300 ${
+                            location.pathname === item.path
+                              ? "bg-gradient-to-r from-blue-50 to-teal-50 text-blue-600 border border-blue-100"
+                              : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                          }`}
+                          onClick={toggleMobileMenu}
+                        >
+                          <span className="font-medium">{item.name}</span>
+                          {location.pathname === item.path && (
+                            <motion.div
+                              className="ml-auto w-2 h-2 bg-blue-500 rounded-full"
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ delay: 0.2 }}
+                            />
+                          )}
+                        </Link>
+                      ) : (
+                        <div>
+                          <button
+                            className={`flex items-center justify-between w-full px-4 py-4 rounded-xl transition-all duration-300 ${
+                              openSubMenu === item.name
+                                ? "bg-gradient-to-r from-blue-50 to-teal-50 text-blue-600 border border-blue-100"
+                                : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                            }`}
+                            onClick={() => toggleSubMenu(item.name)}
+                          >
+                            <span className="font-medium">{item.name}</span>
+                            <ChevronDown
+                              className={`w-5 h-5 transition-transform duration-200 ${
+                                openSubMenu === item.name ? "rotate-180" : ""
+                              }`}
+                            />
+                          </button>
+                          <AnimatePresence>
+                            {openSubMenu === item.name && item.subItems && (
+                              <motion.div
+                                className="pl-6 pt-1 pb-2"
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: "auto", opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.2 }}
+                              >
+                                {item.subItems.map((subItem) => (
+                                  <Link
+                                    key={subItem.name}
+                                    to={subItem.path}
+                                    className={`block px-4 py-3 text-sm transition-all duration-200 ${
+                                      location.pathname === subItem.path
+                                        ? "text-blue-600 bg-blue-50"
+                                        : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                                    }`}
+                                    onClick={toggleMobileMenu}
+                                  >
+                                    {subItem.name}
+                                  </Link>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      )}
                     </motion.div>
                   ))}
                 </div>
