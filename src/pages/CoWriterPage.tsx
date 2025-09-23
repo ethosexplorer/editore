@@ -97,24 +97,25 @@ function CoWriterPage() {
 
   const researchBotTools = [
     { name: 'Paper Templates', icon: FileText, description: 'Pre-structured sections with AI guidance', color: 'bg-blue-500', action: 'paperTemplate' },
+    { name: 'Title Generator', icon: Sparkles, description: 'AI-suggested titles and abstracts', color: 'bg-pink-500' },
     { name: 'Tone Optimizer', icon: Edit3, description: 'Convert to formal academic style', color: 'bg-green-500' },
     { name: 'Paraphraser', icon: RefreshCw, description: 'Plagiarism-safe rewriting', color: 'bg-purple-500' },
-    { name: 'Citations', icon: Quote, description: 'Auto-generate APA, MLA, IEEE formats', color: 'bg-indigo-500' },
-    { name: 'Literature Summarizer', icon: BookOpen, description: 'Extract key findings from PDFs', color: 'bg-teal-500' },
-    { name: 'Citation Finder', icon: Search, description: 'Find relevant papers automatically', color: 'bg-orange-500' },
-    { name: 'Title Generator', icon: Sparkles, description: 'AI-suggested titles and abstracts', color: 'bg-pink-500' },
-    { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
-    { name: 'Format Export', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' },
     { name: 'Grammar Check', icon: CheckCircle, description: 'Academic-focused corrections', color: 'bg-red-500' },
+    { name: 'Literature Summarizer', icon: BookOpen, description: 'Extract key findings from PDFs', color: 'bg-teal-500' },
+    { name: 'Citations & Reference Manager', icon: Quote, description: 'Auto-generate APA, MLA, IEEE formats', color: 'bg-indigo-500' },
+    // { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
     { name: 'Track Changes', icon: Eye, description: 'Show AI edits with accept/reject', color: 'bg-violet-500' },
-    { name: 'Collaboration', icon: Users, description: 'Real-time co-writing', color: 'bg-amber-500' }
+    { name: 'Journal Export Format', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' },
+    { name: 'Journal Import Format', icon: Import, description: 'import journal templates', color: 'bg-orange-500' },
+    // { name: 'Collaboration', icon: Users, description: 'Real-time co-writing', color: 'bg-amber-500' }
   ];
 
   const premiumTools = [
     { name: 'Research Gaps', icon: Target, description: 'Identify unstudied areas', color: 'bg-rose-500', premium: true },
     { name: 'Hypothesis Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
     { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
-    { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true }
+    { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
+    { name: 'Conference & Journal Matcher', icon: Find, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true }
   ];
 
   // Handle research bot tool clicks
