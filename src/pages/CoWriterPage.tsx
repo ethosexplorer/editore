@@ -103,7 +103,6 @@ function CoWriterPage() {
     { name: 'Grammar Check', icon: CheckCircle, description: 'Academic-focused corrections', color: 'bg-red-500' },
     { name: 'Literature Summarizer', icon: BookOpen, description: 'Extract key findings from PDFs', color: 'bg-teal-500' },
     { name: 'Citations & Reference Manager', icon: Quote, description: 'Auto-generate APA, MLA, IEEE formats', color: 'bg-indigo-500' },
-    { name: 'Citations Finder', icon: Quote, description: 'Citation Finder', color: 'bg-indigo-500' },
     // { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
     { name: 'Track Changes', icon: Eye, description: 'Show AI edits with accept/reject', color: 'bg-violet-500' },
     { name: 'Journal Export Format', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' },
@@ -116,7 +115,9 @@ function CoWriterPage() {
     { name: 'Hypothesis Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
     { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
-    { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true }
+    { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true },
+    { name: 'Citations Finder', icon: Quote, description: 'Citation Finder', color: 'bg-indigo-500' }
+    
   ];
 
   // Handle research bot tool clicks
