@@ -106,7 +106,7 @@ function CoWriterPage() {
     // { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
     { name: 'Track Changes', icon: Eye, description: 'Show AI edits with accept/reject', color: 'bg-violet-500' },
     { name: 'Journal Export Format', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' },
-    { name: 'Journal Import Format', icon: Import, description: 'import journal templates', color: 'bg-orange-500' },
+    { name: 'Journal Import Format', icon: Import, description: 'import journal templates', color: 'bg-orange-500' }
     // { name: 'Collaboration', icon: Users, description: 'Real-time co-writing', color: 'bg-amber-500' }
   ];
 
