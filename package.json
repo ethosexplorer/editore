@@ -18,7 +18,7 @@
     "superdoc": "2.2.1",
     "@ai-sdk/openai": "^2.0.32",
     "@supabase/supabase-js": "^2.57.4",
-    "ai": "^5.0.48",
+    "ai": "^5.0.48"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.1",
