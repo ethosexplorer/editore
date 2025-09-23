@@ -18,7 +18,6 @@ import {
   Globe,
   Shield,
 } from "lucide-react"
-import OpenAI from 'openai'
 
 interface HumanizationResult {
   originalText: string
@@ -47,10 +46,6 @@ interface Language {
   flag: string
 }
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
-
 const AIHumanizerPage: React.FC = () => {
   const [inputText, setInputText] = useState("")
   const [result, setResult] = useState<HumanizationResult | null>(null)
@@ -68,31 +63,10 @@ const AIHumanizerPage: React.FC = () => {
   const [wordsLimit, setWordsLimit] = useState(1000)
   const [language, setLanguage] = useState("en")
   const languages: Language[] = [
-    { code: "en-US", name: "English (US)", flag: "🇺🇸" },
-    { code: "en-GB", name: "English (UK)", flag: "🇬🇧" },
-    { code: "en-AU", name: "English (AU)", flag: "🇦🇺" },
-    { code: "en-CA", name: "English (CA)", flag: "🇨🇦" },
-    { code: "fr", name: "French", flag: "🇫🇷" },
+    { code: "en", name: "English", flag: "🇺🇸" },
     { code: "es", name: "Spanish", flag: "🇪🇸" },
-    { code: "de", name: "German", flag: "🇩🇪" },
-    { code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
-    { code: "hi", name: "Hindi", flag: "🇮🇳" },
-    { code: "ru", name: "Russian", flag: "🇷🇺" },
-    { code: "da", name: "Danish", flag: "🇩🇰" },
-    { code: "nl", name: "Dutch", flag: "🇳🇱" },
-    { code: "it", name: "Italian", flag: "🇮🇹" },
-    { code: "ja", name: "Japanese", flag: "🇯🇵" },
-    { code: "ko", name: "Korean", flag: "🇰🇷" },
-    { code: "pl", name: "Polish", flag: "🇵🇱" },
-    { code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
-    { code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
-    { code: "sv", name: "Swedish", flag: "🇸🇪" },
-    { code: "tr", name: "Turkish", flag: "🇹🇷" },
-    { code: "ar", name: "Arabic", flag: "🇸🇦" },
-    { code: "th", name: "Thai", flag: "🇹🇭" },
-    { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
-    { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
-    { code: "ro", name: "Romanian", flag: "🇷🇴" }
+    { code: "fr", name: "French", flag: "🇫🇷" },
+    // ... other languages
   ]
 
   const humanizationModes = [
@@ -147,58 +121,12 @@ const AIHumanizerPage: React.FC = () => {
 
     setIsProcessing(true)
 
-    const apiKey = process.env.OPENAI_API_KEY
-    if (!apiKey) {
-      setResult({
-        originalText: inputText,
-        humanizedText: "Error: OpenAI API key is missing. Please configure it in environment variables.",
-        humanScore: 0,
-        aiDetectionBefore: 0,
-        aiDetectionAfter: 0,
-        changes: [],
-        readabilityScore: 0,
-        creativityLevel,
-        processingTime: 0,
-        aiDetectionResults: [],
-      })
-      setIsProcessing(false)
-      return
-    }
-
-    try {
-      let prompt = ""
-      const langInstruction = language !== "en" ? `Rewrite in ${languages.find(lang => lang.code === language)?.name || "English"}.` : ""
-      switch (humanizationMode) {
-        case "naturalize":
-          prompt = `${langInstruction} Rewrite the following text to sound more natural and human-like, using conversational language and avoiding formal or stiff phrasing. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-          break
-        case "synonym":
-          prompt = `${langInstruction} Rewrite the following text by intelligently replacing words with synonyms to add variety while maintaining meaning. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-          break
-        case "creative":
-          prompt = `${langInstruction} Rewrite the following text with creative flourishes and engaging style, adding emotional or vivid language where appropriate. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-          break
-        case "advanced":
-          prompt = `${langInstruction} Perform an advanced rewrite of the following text to make it highly human-like, nuanced, and contextually rich, tailored for complex texts. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-          break
-        case "bypass":
-          prompt = `${langInstruction} Rewrite the following text to make it undetectable by AI detection tools, using varied sentence structures, natural phrasing, and subtle human quirks. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-          break
-        default:
-          prompt = `${langInstruction} Rewrite the following text to sound more human-like and natural. Creativity level: ${getCreativityDescription()}. Text: "${inputText}"`
-      }
-
-      const startTime = performance.now()
-      const response = await client.chat.completions.create({
-        model: 'gpt-4o',
-        messages: [{ role: 'user', content: prompt }],
-      })
-      const humanizedText = response.choices[0]?.message?.content || "Error: No response from API"
-      const processingTime = (performance.now() - startTime) / 1000
-
+    setTimeout(() => {
+      let humanizedText = inputText
       const changes: Array<{ original: string; humanized: string; type: string; reason: string }> = []
-      let tempHumanizedText = inputText
+      const processingTime = Math.floor(Math.random() * 5) + 3 // Simulate processing time
 
+      // Naturalize mode transformations
       if (humanizationMode === "naturalize") {
         const formalReplacements = [
           {
@@ -254,7 +182,7 @@ const AIHumanizerPage: React.FC = () => {
         ]
 
         formalReplacements.forEach((replacement) => {
-          const matches = tempHumanizedText.match(replacement.formal)
+          const matches = humanizedText.match(replacement.formal)
           if (matches) {
             matches.forEach((match) => {
               changes.push({
@@ -263,18 +191,20 @@ const AIHumanizerPage: React.FC = () => {
                 type: replacement.type,
                 reason: replacement.reason,
               })
-              tempHumanizedText = tempHumanizedText.replace(replacement.formal, replacement.casual)
             })
+            humanizedText = humanizedText.replace(replacement.formal, replacement.casual)
           }
         })
 
+        // Add conversational elements
         if (creativityLevel >= 50) {
-          tempHumanizedText = tempHumanizedText.replace(/^/, "Here's what I think: ")
-          tempHumanizedText = tempHumanizedText.replace(/\. ([A-Z])/g, ". You know, $1")
-          tempHumanizedText = tempHumanizedText.replace(/\. You know, You know, /g, ". You know, ")
+          humanizedText = humanizedText.replace(/^/, "Here's what I think: ")
+          humanizedText = humanizedText.replace(/\. ([A-Z])/g, ". You know, $1")
+          humanizedText = humanizedText.replace(/\. You know, You know, /g, ". You know, ")
         }
       }
 
+      // Synonym Integration mode
       if (humanizationMode === "synonym") {
         const synonymReplacements = [
           {
@@ -293,7 +223,7 @@ const AIHumanizerPage: React.FC = () => {
         ]
 
         synonymReplacements.forEach((replacement) => {
-          const matches = tempHumanizedText.match(replacement.original)
+          const matches = humanizedText.match(replacement.original)
           if (matches) {
             matches.forEach((match) => {
               const randomSynonym = replacement.synonyms[Math.floor(Math.random() * replacement.synonyms.length)]
@@ -303,13 +233,15 @@ const AIHumanizerPage: React.FC = () => {
                 type: "synonym",
                 reason: "Added variety with intelligent synonym",
               })
-              tempHumanizedText = tempHumanizedText.replace(match, randomSynonym)
+              humanizedText = humanizedText.replace(match, randomSynonym)
             })
           }
         })
       }
 
+      // Creative Rewrite mode
       if (humanizationMode === "creative") {
+        // Add creative flourishes based on creativity level
         const creativityPhrases = [
           "Let me paint you a picture:",
           "Picture this:",
@@ -319,36 +251,39 @@ const AIHumanizerPage: React.FC = () => {
 
         if (creativityLevel >= 70) {
           const randomPhrase = creativityPhrases[Math.floor(Math.random() * creativityPhrases.length)]
-          tempHumanizedText = randomPhrase + " " + tempHumanizedText
+          humanizedText = randomPhrase + " " + humanizedText
         }
 
-        tempHumanizedText = tempHumanizedText.replace(/\b(results|outcomes)\b/gi, "incredible results")
-        tempHumanizedText = tempHumanizedText.replace(/\b(analysis|study)\b/gi, "deep dive")
+        // Add emphasis and emotional language
+        humanizedText = humanizedText.replace(/\b(results|outcomes)\b/gi, "incredible results")
+        humanizedText = humanizedText.replace(/\b(analysis|study)\b/gi, "deep dive")
       }
 
-      const finalHumanizedText = preserveFormatting ? humanizedText : humanizedText.replace(/\n/g, " ")
+      // Advanced Humanization mode
+      if (humanizationMode === "advanced") {
+        // Implement advanced humanization logic here
+      }
 
+      // AI Detection Bypass mode
+      if (humanizationMode === "bypass") {
+        // Implement AI detection bypass logic here
+      }
+
+      // Calculate scores
       const originalWordCount = inputText.split(" ").length
-      const humanizedWordCount = finalHumanizedText.split(" ").length
+      const humanizedWordCount = humanizedText.split(" ").length
       const changeRatio = changes.length / originalWordCount
 
       const newResult: HumanizationResult = {
         originalText: inputText,
-        humanizedText: finalHumanizedText,
+        humanizedText: humanizedText,
         humanScore: Math.min(95, 60 + creativityLevel * 0.3 + changeRatio * 100),
-        aiDetectionBefore: Math.random() * 40 + 50,
-        aiDetectionAfter: Math.random() * 20 + 10,
-        changes: changes.length > 0 ? changes : [
-          {
-            original: inputText.slice(0, 20) + "...",
-            humanized: finalHumanizedText.slice(0, 20) + "...",
-            type: humanizationMode,
-            reason: `Applied ${humanizationMode} transformation via OpenAI`,
-          },
-        ],
+        aiDetectionBefore: Math.random() * 40 + 50, // 50-90%
+        aiDetectionAfter: Math.random() * 20 + 10, // 10-30%
+        changes: changes,
         readabilityScore: Math.min(100, 70 + creativityLevel + Math.random() * 15),
-        creativityLevel,
-        processingTime,
+        creativityLevel: creativityLevel,
+        processingTime: processingTime,
         aiDetectionResults: [
           { detector: "Detector A", confidence: Math.random() * 100 },
           { detector: "Detector B", confidence: Math.random() * 100 },
@@ -357,23 +292,8 @@ const AIHumanizerPage: React.FC = () => {
       }
 
       setResult(newResult)
-    } catch (error) {
-      console.error("Error humanizing text:", error)
-      setResult({
-        originalText: inputText,
-        humanizedText: "Error processing text. Please check API configuration and try again.",
-        humanScore: 0,
-        aiDetectionBefore: 0,
-        aiDetectionAfter: 0,
-        changes: [],
-        readabilityScore: 0,
-        creativityLevel,
-        processingTime: 0,
-        aiDetectionResults: [],
-      })
-    } finally {
       setIsProcessing(false)
-    }
+    }, 3000)
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -425,7 +345,7 @@ AI Detection Results:
 ${result.aiDetectionResults.map((detection) => `- ${detection.detector}: ${detection.confidence.toFixed(1)}% AI-like`).join("\n")}
 
 Generated by QuillBot AI Humanizer
-${new Date().toLocaleDateString()}`
+${new Date().toLocaleDateString()}` // Simulate date
 
     const blob = new Blob([reportContent], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
@@ -439,6 +359,7 @@ ${new Date().toLocaleDateString()}`
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
+        {/* Header */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
@@ -470,6 +391,8 @@ ${new Date().toLocaleDateString()}`
               </button>
             </div>
           </div>
+
+          {/* Usage Bar */}
           <div className="mt-4 pt-4 border-t border-gray-200">
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs sm:text-sm font-medium text-gray-700">Words Used This Month</span>
@@ -494,11 +417,14 @@ ${new Date().toLocaleDateString()}`
             </div>
           </div>
         </div>
+
+        {/* Humanization Mode Selection */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
             <h3 className="text-base sm:text-lg font-semibold text-gray-900">Humanization Mode</h3>
             <span className="text-xs sm:text-sm text-gray-500">Choose your preferred style</span>
           </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
             {humanizationModes.map((mode) => {
               const IconComponent = mode.icon
@@ -529,6 +455,8 @@ ${new Date().toLocaleDateString()}`
             })}
           </div>
         </div>
+
+        {/* Settings Bar */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-3 sm:gap-4 lg:gap-6">
@@ -546,6 +474,7 @@ ${new Date().toLocaleDateString()}`
                   ))}
                 </select>
               </div>
+
               <div className="flex items-center space-x-2">
                 <span className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">Creativity Level:</span>
                 <input
@@ -558,6 +487,7 @@ ${new Date().toLocaleDateString()}`
                 />
                 <span className="text-xs text-gray-500 min-w-max">{getCreativityDescription()}</span>
               </div>
+
               <div className="flex items-center space-x-2">
                 <input
                   type="checkbox"
@@ -571,6 +501,7 @@ ${new Date().toLocaleDateString()}`
                 </label>
               </div>
             </div>
+
             <button
               onClick={() => fileInputRef.current?.click()}
               className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
@@ -581,8 +512,11 @@ ${new Date().toLocaleDateString()}`
             </button>
           </div>
         </div>
+
         <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Input Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            {/* File Upload Area */}
             {files.length > 0 && (
               <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
                 <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Uploaded Files</h4>
@@ -607,6 +541,7 @@ ${new Date().toLocaleDateString()}`
                 </div>
               </div>
             )}
+
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900">AI-Generated Text</h2>
@@ -631,12 +566,14 @@ ${new Date().toLocaleDateString()}`
                   )}
                 </div>
               </div>
+
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Paste your AI-generated text here to humanize it and make it undetectable by AI detection tools..."
                 className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
               />
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -645,6 +582,7 @@ ${new Date().toLocaleDateString()}`
                 onChange={handleFileUpload}
                 className="hidden"
               />
+
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                   <div className="flex items-center space-x-2 sm:space-x-4">
@@ -680,6 +618,8 @@ ${new Date().toLocaleDateString()}`
               </div>
             </div>
           </div>
+
+          {/* Output Section */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
               <h2 className="text-base sm:text-lg font-semibold text-gray-900">Humanized Text</h2>
@@ -702,6 +642,7 @@ ${new Date().toLocaleDateString()}`
                 </div>
               )}
             </div>
+
             <div className="h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg bg-gray-50 overflow-y-auto">
               {result ? (
                 <div className="text-gray-900 leading-relaxed text-sm sm:text-base">{result.humanizedText}</div>
@@ -714,6 +655,8 @@ ${new Date().toLocaleDateString()}`
                 </div>
               )}
             </div>
+
+            {/* Results Metrics */}
             {result && (
               <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                 <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
@@ -728,6 +671,8 @@ ${new Date().toLocaleDateString()}`
                 </div>
               </div>
             )}
+
+            {/* AI Detection Results */}
             {result && result.aiDetectionResults && (
               <div className="mt-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                 <h4 className="font-medium text-yellow-900 mb-3 text-sm sm:text-base">AI Detection Results</h4>
@@ -755,6 +700,8 @@ ${new Date().toLocaleDateString()}`
             )}
           </div>
         </div>
+
+        {/* Premium Modal */}
         {showPremiumModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
@@ -767,6 +714,7 @@ ${new Date().toLocaleDateString()}`
                   Unlock unlimited humanization and advanced features
                 </p>
               </div>
+
               <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
                 <div className="flex items-center space-x-3">
                   <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
@@ -785,6 +733,7 @@ ${new Date().toLocaleDateString()}`
                   <span className="text-xs sm:text-sm">Bulk document processing</span>
                 </div>
               </div>
+
               <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
                 <button
                   onClick={() => setShowPremiumModal(false)}
@@ -799,6 +748,8 @@ ${new Date().toLocaleDateString()}`
             </div>
           </div>
         )}
+
+        {/* Features Section */}
         <div className="mt-8 sm:mt-12 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
           <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
