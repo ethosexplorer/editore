@@ -112,7 +112,7 @@ function CoWriterPage() {
 
   const premiumTools = [
     { name: 'Research Gaps', icon: Target, description: 'Identify unstudied areas', color: 'bg-rose-500', premium: true },
-    { name: 'Hypothesis Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
+    { name: 'Research Question Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
     { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
     { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true },
