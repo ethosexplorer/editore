@@ -116,7 +116,7 @@ function CoWriterPage() {
     { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
     { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true },
-    { name: 'Citations Finder', icon: Quote, description: 'Citation Finder', color: 'bg-indigo-500' }
+    { name: 'Citations Finder', icon: Quote, description: 'AI suggests relevant papers, articles, or DOIs', color: 'bg-indigo-500' }
     
   ];
 
