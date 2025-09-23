@@ -28,9 +28,9 @@ const Header: React.FC = () => {
     {
       name: "Research Writing",
       subItems: [
-        { name: "Research Assistant", path: "/research-assistant" },
+        { name: "Research Assistant", path: "/co-writer" },
         { name: "Citation Generator", path: "/citation-generator" },
-        { name: "Journal Templates", path: "/journal-templates" },
+        { name: "Journal Templates", path: "/co-writer" },
       ],
     },
     { name: "Translator", path: "/translator" },
