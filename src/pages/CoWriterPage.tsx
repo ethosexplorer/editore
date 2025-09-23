@@ -106,7 +106,7 @@ function CoWriterPage() {
     // { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
     { name: 'Track Changes', icon: Eye, description: 'Show AI edits with accept/reject', color: 'bg-violet-500' },
     { name: 'Journal Export Format', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' },
-    { name: 'Journal Import Format', icon: Import, description: 'import journal templates', color: 'bg-orange-500' }
+    { name: 'Journal Import Format', icon: Download, description: 'import journal templates', color: 'bg-orange-500' }
     // { name: 'Collaboration', icon: Users, description: 'Real-time co-writing', color: 'bg-amber-500' }
   ];
 
@@ -115,7 +115,7 @@ function CoWriterPage() {
     { name: 'Hypothesis Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
     { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
-    { name: 'Conference & Journal Matcher', icon: Find, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true }
+    { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true }
   ];
 
   // Handle research bot tool clicks
