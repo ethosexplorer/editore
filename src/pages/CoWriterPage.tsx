@@ -117,7 +117,6 @@ function CoWriterPage() {
     { name: 'Citations Finder', icon: Quote, description: 'AI suggests relevant papers, articles, or DOIs', color: 'bg-indigo-500' },
     { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
     { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true },
-    
   ];
 
   // Handle research bot tool clicks
