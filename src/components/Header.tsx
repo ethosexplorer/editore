@@ -21,7 +21,7 @@ const Header: React.FC = () => {
     { name: "AI Humanizer", path: "/ai-humanizer" },
     { name: "Citation Generator", path: "/citation-generator" },
     { name: "Translator", path: "/translator" },
-    { name: "Research Paper", path: "/co-writer" },
+    { name: "AI research writing assistant", path: "/co-writer" },
   ]
 
   // Handle scroll effect
