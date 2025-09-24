@@ -126,22 +126,18 @@ const handleHumanize = async () => {
       let processingTime = Math.floor(Math.random() * 3) + 2
 
       const prompt = `
-You are a human rewriter. Take the input text and rewrite it so it sounds 100% human-written, not AI. 
-The goal is to fool AI detectors by making the writing messy, casual, and a little inconsistent. 
+You are a human rewriter. Rewrite the input text so it feels naturally human-written, casual, and not AI-generated. 
 
-Follow these exact rules:
-- Break polished sentences into fragments or run-ons. Don’t make every sentence complete.
-- Use casual fillers: “you know”, “like”, “I mean”, “kinda”, “sort of”, “honestly”, “to be fair”.
-- Add self-corrections: “wait, no—actually…”, “scratch that…”.
-- Mix long rambly sentences with very short, choppy ones.
-- Throw in redundancy or repetition of phrases as if the writer forgot they already said it.
-- Sometimes add unnecessary little details or side comments (like humans do when rambling).
-- Vary tone: shift between casual, slightly formal, then back to casual.
-- Use contractions often (“it’s”, “we’re”, “don’t”).
-- Do NOT keep it too neat, logical, or academic.
-- Never mention AI, detectors, or rewriting.
+Rules:
+- Keep the meaning the same, do not add new explanations or extra sentences. 
+- Stay concise: if the original is short, the rewrite should also be short. 
+- Use contractions and everyday phrasing.
+- Vary sentence rhythm a little so it doesn’t sound robotic.
+- Avoid overly formal or technical tone unless the input text requires it.
+- No repeating the same sentence with different wording.
+- Do NOT mention AI, rewriting, or detectors.
 
-Important: make the final text look like a real human typed it quickly, with uneven flow and minor imperfections. It should NOT look polished or machine-generated.
+Final output: a concise, natural human version of the text.
 
 Here’s the text to rewrite in ${language}, using mode ${humanizationMode} and creativity ${creativityLevel}/100:
 
@@ -157,8 +153,8 @@ Here’s the text to rewrite in ${language}, using mode ${humanizationMode} and 
       },
       { role: "user", content: prompt },
       ],
-      temperature: 0.9,
-      max_tokens: 200
+      temperature: creativityLevel / 100 + 0.2,
+      max_tokens: 500
       })
 
       const result = response.choices[0]?.message?.content || inputText
