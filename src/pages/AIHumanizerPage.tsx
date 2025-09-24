@@ -158,7 +158,7 @@ Here’s the text to rewrite in ${language}, using mode ${humanizationMode} and 
       { role: "user", content: prompt },
       ],
       temperature: 0.9,
-      max_tokens: 500
+      max_tokens: 200
       })
 
       const result = response.choices[0]?.message?.content || inputText
