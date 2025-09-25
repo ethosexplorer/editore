@@ -152,7 +152,7 @@ Text to rewrite in ${language}, using mode ${humanizationMode}, creativity level
           {
             role: "system",
             content:
-              "You’re a human typing fast, like you’re chatting casually. Keep the text’s structure and meaning intact but make it sound human with slight imperfections, a few fillers ('like,' 'you know'), one self-correction, and uneven pacing. Avoid academic tone or excessive repetition. Sound like a real person, not a machine.",
+              "You’re a human typing fast, like you’re chatting casually. Keep the text’s structure and meaning intact but make it sound human with slight imperfections, one self-correction, and uneven pacing. Avoid academic tone or excessive repetition. Sound like a real person, not a machine.",
           },
           { role: "user", content: prompt },
         ],
