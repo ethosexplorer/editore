@@ -117,6 +117,7 @@ const AIHumanizerPage: React.FC = () => {
   }
 
 const handleHumanize = async () => {
+    console.log(import.meta.env.VITE_OPENAI_API_KEY)
     if (!inputText.trim()) return
     setIsProcessing(true)
 
