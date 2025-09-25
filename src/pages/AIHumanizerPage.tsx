@@ -129,36 +129,37 @@ const AIHumanizerPage: React.FC = () => {
       let processingTime = Math.floor(Math.random() * 3) + 2
 
       const prompt = `
-You’re a human writer, typing quick and a bit sloppy, like you’re just chatting with a friend. Rewrite this text to sound natural and human, keeping it close to the original structure and meaning but with a casual, imperfect vibe. Here’s how:
+Rewrite this text to sound natural and human-written while preserving all key information and meaning. Follow these guidelines:
 
-- Stick to the original structure and key points, don’t stray too far.
-- Use a few casual fillers: “you know,” “like,” “I mean,” “kinda,” but don’t overdo it.
-- Add one or two self-corrections, like “wait, no—actually…” or “scratch that.”
-- Mix a longer sentence with a short one for uneven pacing.
-- Toss in a tiny, random detail or aside, like a human might.
-- Use contractions: “it’s,” “don’t,” “we’re.”
-- Keep it conversational, not academic or polished.
-- Avoid repeating words excessively; keep it natural.
-- Make it feel like a person typed it fast with slight imperfections.
+- Use simple, clear language that feels conversational
+- Replace formal/technical phrases with everyday equivalents where appropriate
+- Use "when" instead of complex conjunctions
+- Connect ideas with natural flow using words like "by", "that", "and"
+- Keep sentences structured but not overly complex
+- Maintain all factual content and relationships between concepts
+- Avoid adding unnecessary filler words or changing the core message
+- Write as if explaining the concept clearly to someone in person
 
-Text to rewrite in ${language}, using mode ${humanizationMode}, creativity level ${creativityLevel}/100:
+Example transformation:
+Original: "Artificial Intelligence refers to computational systems that exhibit cognitive capabilities typically associated with human intelligence, including pattern recognition, decision-making, and adaptive learning processes."
+Humanized: "AI is when machines are designed to act like humans by thinking, learning, and solving problems."
+
+Now rewrite this text in ${language}, using mode ${humanizationMode}, creativity level ${creativityLevel}/100:
 
 "${inputText}"
 `
-
       const response = await client.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
-            content:
-              "You’re a human typing fast, like you’re chatting casually. Keep the text’s structure and meaning intact but make it sound human with slight imperfections, one self-correction, and uneven pacing. Avoid academic tone or excessive repetition. Sound like a real person, not a machine.",
+            content: "You are a skilled writer who makes complex text sound natural and human-written. Rewrite text to be clear and conversational while preserving all key information. Use simple language, natural connections between ideas, and maintain factual accuracy. Avoid overly formal or academic tone."
           },
           { role: "user", content: prompt },
         ],
-        temperature: creativityLevel / 100 + 0.3, // Moderate randomness
+        temperature: Math.min(0.7, creativityLevel / 100 + 0.3), // Controlled temperature
         max_tokens: 500,
-        top_p: 0.85, // Controlled diversity
+        top_p: 0.9,
       })
 
       humanizedText = response.choices[0]?.message?.content || inputText
