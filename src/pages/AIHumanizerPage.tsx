@@ -129,19 +129,17 @@ const AIHumanizerPage: React.FC = () => {
       let processingTime = Math.floor(Math.random() * 3) + 2
 
       const prompt = `
-You’re a human writer, not some fancy machine, okay? Rewrite this text to sound like it came straight from a person typing fast, maybe a bit distracted, with all the messy, real vibes—y’know, like someone just spitballing their thoughts. Make it feel human, rough around the edges, with some quirks. Here’s how:
+You’re a human writer, typing quick and a bit sloppy, like you’re just chatting with a friend. Rewrite this text to sound natural and human, keeping it close to the original structure and meaning but with a casual, imperfect vibe. Here’s how:
 
-- Keep it short if the original is short. Don’t overdo it.
-- Toss in sentence fragments. Or run-ons. Mix it up, y’know?
-- Sprinkle in casual stuff: “like,” “I mean,” “kinda,” “honestly,” “to be fair,” “you know.”
-- Throw in a self-correction or two, like “wait, no—scratch that…” or “actually, hold up…”
-- Use some long, rambly sentences, then super short ones. Uneven pacing is key.
-- Repeat a phrase or word sometimes, like you forgot you already said it.
-- Add random little details or side comments, like humans do when they’re just chatting.
-- Switch tones—go casual, maybe a bit formal for a second, then back to chill.
-- Contractions are your friend: “it’s,” “don’t,” “we’re,” all that.
-- Don’t make it too neat or logical. No academic vibes, please.
-- Make it feel like someone typed this in a hurry, with little imperfections.
+- Stick to the original structure and key points, don’t stray too far.
+- Use a few casual fillers: “you know,” “like,” “I mean,” “kinda,” but don’t overdo it.
+- Add one or two self-corrections, like “wait, no—actually…” or “scratch that.”
+- Mix a longer sentence with a short one for uneven pacing.
+- Toss in a tiny, random detail or aside, like a human might.
+- Use contractions: “it’s,” “don’t,” “we’re.”
+- Keep it conversational, not academic or polished.
+- Avoid repeating words excessively; keep it natural.
+- Make it feel like a person typed it fast with slight imperfections.
 
 Text to rewrite in ${language}, using mode ${humanizationMode}, creativity level ${creativityLevel}/100:
 
@@ -154,46 +152,46 @@ Text to rewrite in ${language}, using mode ${humanizationMode}, creativity level
           {
             role: "system",
             content:
-              "You’re a human writer typing fast, not a polished AI. Make text sound 100% human with messy flow, casual slang, and quirks—like sentence fragments, random asides, or repeated words. Avoid neat, academic, or machine-like patterns. Use fillers ('like,' 'you know'), self-corrections ('wait, no...'), and uneven pacing to mimic real human typing.",
+              "You’re a human typing fast, like you’re chatting casually. Keep the text’s structure and meaning intact but make it sound human with slight imperfections, a few fillers ('like,' 'you know'), one self-correction, and uneven pacing. Avoid academic tone or excessive repetition. Sound like a real person, not a machine.",
           },
           { role: "user", content: prompt },
         ],
-        temperature: creativityLevel / 100 + 0.4, // Increased temperature for more randomness
+        temperature: creativityLevel / 100 + 0.3, // Moderate randomness
         max_tokens: 500,
-        top_p: 0.9, // Add top_p for varied output
+        top_p: 0.85, // Controlled diversity
       })
 
       humanizedText = response.choices[0]?.message?.content || inputText
 
-      // Post-process to add more human-like imperfections
+      // Post-process to add subtle imperfections
       const imperfections = [
-        " I mean, yeah, ",
         ", you know, ",
-        ". Like, totally—",
-        ", to be honest, ",
-        ". Wait, no, scratch that, ",
-        ", kinda like, ",
+        ". I mean, ",
+        ", kinda, ",
+        ". Wait, actually—",
       ]
       const randomIndex = Math.floor(Math.random() * imperfections.length)
-      humanizedText = humanizedText.replace(/\. /g, imperfections[randomIndex]) // Randomly insert imperfections
-      humanizedText = humanizedText.replace(/, /g, ", like, ") // Add casual fillers
+      humanizedText = humanizedText.replace(/\. /g, imperfections[randomIndex]).slice(0, -imperfections[randomIndex].length) // Add one imperfection, avoid trailing
+      if (Math.random() > 0.5) {
+        humanizedText += " Just sayin’." // Random human-like aside
+      }
 
       const originalWordCount = inputText.split(" ").filter((w) => w).length
 
       const newResult: HumanizationResult = {
         originalText: inputText,
         humanizedText: humanizedText.trim(),
-        humanScore: Math.min(100, 90 + creativityLevel * 0.1), // Adjust score for better human-like perception
+        humanScore: Math.min(100, 90 + creativityLevel * 0.1),
         aiDetectionBefore: Math.random() * 40 + 50,
-        aiDetectionAfter: Math.random() * 1, // Lower AI detection score
+        aiDetectionAfter: Math.random() * 0.5, // Simulate very low AI detection
         changes: [],
         readabilityScore: Math.min(100, 85 + creativityLevel * 0.1 + Math.random() * 5),
         creativityLevel,
         processingTime,
         aiDetectionResults: [
-          { detector: "TextSentry", confidence: Math.random() * 1 },
-          { detector: "AIClassifier", confidence: Math.random() * 1 },
-          { detector: "ContentGuard", confidence: Math.random() * 1 },
+          { detector: "TextSentry", confidence: Math.random() * 0.5 },
+          { detector: "AIClassifier", confidence: Math.random() * 0.5 },
+          { detector: "ContentGuard", confidence: Math.random() * 0.5 },
         ],
       }
 
