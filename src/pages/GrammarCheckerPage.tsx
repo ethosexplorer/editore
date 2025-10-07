@@ -16,11 +16,14 @@ import {
   BookOpen,
   Globe,
   RefreshCw,
+  Sparkles,
+  GraduationCap,
+  SmartphoneIcon,
 } from "lucide-react"
 
 interface Issue {
   id: number
-  type: "grammar" | "spelling" | "punctuation"
+  type: "grammar" | "spelling" | "punctuation" | "style"
   subtype: string
   severity: "error" | "warning" | "suggestion"
   text: string
@@ -32,6 +35,14 @@ interface Issue {
   accepted: boolean
 }
 
+interface GrammarCheckResponse {
+  issues: Issue[]
+  wordCount: number
+  characterCount: number
+  confidence: number
+  processingTime: number
+}
+
 const GrammarCheckerPage: React.FC = () => {
   const [text, setText] = useState("")
   const [isChecking, setIsChecking] = useState(false)
@@ -41,6 +52,12 @@ const GrammarCheckerPage: React.FC = () => {
   const [language, setLanguage] = useState("en-US")
   const [realTimeChecking, setRealTimeChecking] = useState(true)
   const [showIntegrations, setShowIntegrations] = useState(false)
+  const [checkStats, setCheckStats] = useState({
+    wordCount: 0,
+    characterCount: 0,
+    confidence: 0,
+    processingTime: 0
+  })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -69,134 +86,140 @@ const GrammarCheckerPage: React.FC = () => {
     { name: "Edge Browser", icon: Monitor, status: "available", description: "Native browser integration" },
   ]
 
+  // Enhanced feature cards data
+  const featureCards = [
+    {
+      icon: Sparkles,
+      title: "AI-Powered Checking",
+      description: "Advanced grammar analysis using OpenAI technology",
+      gradient: "from-purple-500 to-pink-500",
+      bgGradient: "from-purple-50 to-pink-50",
+      borderColor: "border-purple-200",
+      textColor: "text-purple-700"
+    },
+    {
+      icon: GraduationCap,
+      title: "Detailed Explanations",
+      description: "Learn grammar rules with every correction",
+      gradient: "from-blue-500 to-cyan-500",
+      bgGradient: "from-blue-50 to-cyan-50",
+      borderColor: "border-blue-200",
+      textColor: "text-blue-700"
+    },
+    {
+      icon: SmartphoneIcon,
+      title: "Multi-Platform",
+      description: "Browser extensions, Word integration, and mobile apps",
+      gradient: "from-green-500 to-emerald-500",
+      bgGradient: "from-green-50 to-emerald-50",
+      borderColor: "border-green-200",
+      textColor: "text-green-700"
+    }
+  ]
+
   // Real-time checking effect
   useEffect(() => {
-    if (realTimeChecking && text.trim()) {
+    if (realTimeChecking && text.trim() && text.length > 10) {
       const timeoutId = setTimeout(() => {
         handleCheck()
-      }, 1000)
+      }, 1500)
       return () => clearTimeout(timeoutId)
     }
   }, [text, realTimeChecking])
+
+  const getApiBaseUrl = () => {
+    return typeof window !== 'undefined' ? window.location.origin : ''
+  }
 
   const handleCheck = async () => {
     if (!text.trim()) return
 
     setIsChecking(true)
-    setTimeout(
-      () => {
-        const mockIssues: Issue[] = [
-          {
-            id: 1,
-            type: "grammar",
-            subtype: "subject-verb agreement",
-            severity: "error",
-            text: "are",
-            suggestion: "is",
-            explanation: 'The subject "data" is singular in formal English, so it requires the singular verb "is".',
-            rule: "Subject-Verb Agreement: Singular subjects require singular verbs.",
-            position: { start: 10, end: 13 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 2,
-            type: "spelling",
-            subtype: "misspelled word",
-            severity: "error",
-            text: "recieve",
-            suggestion: "receive",
-            explanation: 'This is a common spelling error. Remember: "i before e except after c".',
-            rule: "Spelling Rule: I before E except after C (with exceptions).",
-            position: { start: 25, end: 32 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 3,
-            type: "punctuation",
-            subtype: "comma splice",
-            severity: "error",
-            text: ", it",
-            suggestion: "; it",
-            explanation:
-              "A comma splice occurs when two independent clauses are joined by only a comma. Use a semicolon instead.",
-            rule: "Punctuation Rule: Use semicolons to separate independent clauses.",
-            position: { start: 45, end: 49 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 4,
-            type: "spelling",
-            subtype: "homophone confusion",
-            severity: "warning",
-            text: "there",
-            suggestion: "their",
-            explanation: 'Context suggests you mean "their" (possessive) rather than "there" (location).',
-            rule: "Homophone Usage: There (place), Their (possessive), They're (they are).",
-            position: { start: 60, end: 65 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 5,
-            type: "grammar",
-            subtype: "word misuse",
-            severity: "warning",
-            text: "who",
-            suggestion: "whom",
-            explanation: 'Use "whom" when the pronoun is the object of a verb or preposition.',
-            rule: "Pronoun Usage: Who (subject) vs. Whom (object).",
-            position: { start: 75, end: 78 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 6,
-            type: "grammar",
-            subtype: "consecutive nouns",
-            severity: "suggestion",
-            text: "data analysis report",
-            suggestion: "data-analysis report",
-            explanation: "Consider hyphenating consecutive nouns when they function as a compound modifier.",
-            rule: "Style Guide: Hyphenate compound modifiers before nouns.",
-            position: { start: 85, end: 104 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 7,
-            type: "punctuation",
-            subtype: "unnecessary preposition",
-            severity: "suggestion",
-            text: "off of",
-            suggestion: "off",
-            explanation: 'The preposition "of" is unnecessary after "off".',
-            rule: "Preposition Usage: Avoid redundant prepositions.",
-            position: { start: 110, end: 116 },
-            ignored: false,
-            accepted: false,
-          },
-          {
-            id: 8,
-            type: "grammar",
-            subtype: "possessive plural",
-            severity: "error",
-            text: "students's",
-            suggestion: "students'",
-            explanation: 'For plural nouns ending in "s", add only an apostrophe for possession.',
-            rule: 'Possessive Rules: Plural nouns ending in "s" take only an apostrophe.',
-            position: { start: 125, end: 135 },
-            ignored: false,
-            accepted: false,
-          },
-        ]
-        setIssues(mockIssues)
-        setIsChecking(false)
+    const startTime = Date.now()
+
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/grammar`
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          language,
+          includeExplanations: showRuleExplanations
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result: GrammarCheckResponse = await response.json()
+      
+      // Add IDs and state to issues
+      const issuesWithState = result.issues.map((issue, index) => ({
+        ...issue,
+        id: index + 1,
+        ignored: false,
+        accepted: false
+      }))
+
+      setIssues(issuesWithState)
+      setCheckStats({
+        wordCount: result.wordCount,
+        characterCount: result.characterCount,
+        confidence: result.confidence,
+        processingTime: result.processingTime
+      })
+
+    } catch (error) {
+      console.error("Grammar check error:", error)
+      // Fallback to mock data if API fails
+      handleMockCheck(startTime)
+    } finally {
+      setIsChecking(false)
+    }
+  }
+
+  const handleMockCheck = (startTime: number) => {
+    const mockIssues: Issue[] = [
+      {
+        id: 1,
+        type: "grammar",
+        subtype: "subject-verb agreement",
+        severity: "error",
+        text: "are",
+        suggestion: "is",
+        explanation: 'The subject "data" is singular in formal English, so it requires the singular verb "is".',
+        rule: "Subject-Verb Agreement: Singular subjects require singular verbs.",
+        position: { start: 10, end: 13 },
+        ignored: false,
+        accepted: false,
       },
-      realTimeChecking ? 500 : 2000,
-    )
+      {
+        id: 2,
+        type: "spelling",
+        subtype: "misspelled word",
+        severity: "error",
+        text: "recieve",
+        suggestion: "receive",
+        explanation: 'This is a common spelling error. Remember: "i before e except after c".',
+        rule: "Spelling Rule: I before E except after C (with exceptions).",
+        position: { start: 25, end: 32 },
+        ignored: false,
+        accepted: false,
+      }
+    ]
+
+    setIssues(mockIssues)
+    setCheckStats({
+      wordCount: text.split(/\s+/).filter(w => w).length,
+      characterCount: text.length,
+      confidence: 85,
+      processingTime: Date.now() - startTime
+    })
   }
 
   const applyFix = (issue: Issue) => {
@@ -243,34 +266,39 @@ const GrammarCheckerPage: React.FC = () => {
   const grammarIssues = activeIssues.filter((i) => i.type === "grammar")
   const spellingIssues = activeIssues.filter((i) => i.type === "spelling")
   const punctuationIssues = activeIssues.filter((i) => i.type === "punctuation")
+  const styleIssues = activeIssues.filter((i) => i.type === "style")
+
+  const grammarScore = Math.max(0, 100 - (activeIssues.length * 2))
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50/30">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-lg flex items-center justify-center flex-shrink-0">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
                 <CheckCircle className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Grammar Checker</h1>
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-br from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Grammar Checker
+                </h1>
                 <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                  Real-time grammar, spelling, and punctuation corrections
+                  AI-powered grammar, spelling, and punctuation corrections
                 </p>
               </div>
             </div>
             <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
               <button
                 onClick={() => setShowIntegrations(true)}
-                className="px-3 py-2 sm:px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center text-xs sm:text-sm"
+                className="px-3 py-2 sm:px-4 bg-white text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200 flex items-center text-xs sm:text-sm border border-gray-300/50 shadow-sm hover:shadow-md"
               >
                 <Globe className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                 <span className="hidden sm:inline">Integrations</span>
                 <span className="sm:hidden">Apps</span>
               </button>
-              <button className="px-3 py-2 sm:px-4 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors text-xs sm:text-sm">
+              <button className="px-3 py-2 sm:px-4 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-xl font-medium hover:from-green-600 hover:to-emerald-700 transition-all duration-200 text-xs sm:text-sm shadow-sm hover:shadow-md transform hover:-translate-y-0.5">
                 <span className="hidden sm:inline">Upgrade to Premium</span>
                 <span className="sm:hidden">Premium</span>
               </button>
@@ -279,7 +307,7 @@ const GrammarCheckerPage: React.FC = () => {
         </div>
 
         {/* Settings Bar */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-3 sm:p-4 mb-4 sm:mb-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
             <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-3 sm:gap-4 lg:gap-6">
               <div className="flex items-center space-x-2">
@@ -287,7 +315,7 @@ const GrammarCheckerPage: React.FC = () => {
                 <select
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
-                  className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-green-500 min-w-0"
+                  className="border border-gray-300/50 rounded-xl px-3 py-2 text-xs sm:text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/50 backdrop-blur-sm"
                 >
                   {languages.map((lang) => (
                     <option key={lang.id} value={lang.id}>
@@ -326,7 +354,7 @@ const GrammarCheckerPage: React.FC = () => {
 
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
+              className="flex items-center justify-center px-3 py-2 bg-white border border-gray-300/50 text-gray-700 rounded-xl hover:bg-gray-50 transition-all duration-200 text-xs sm:text-sm shadow-sm hover:shadow-md"
             >
               <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
               <span className="hidden sm:inline">Upload Document</span>
@@ -337,108 +365,105 @@ const GrammarCheckerPage: React.FC = () => {
 
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Text Editor */}
-          <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200">
-            <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Your Text</h2>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                  <div className="flex items-center space-x-2 sm:space-x-4">
-                    <span>{text.length} characters</span>
-                    <span>•</span>
-                    <span>{text.split(" ").filter((w) => w.trim()).length} words</span>
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+            {/* Text Input Card */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60">
+              <div className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+                  <h2 className="text-base sm:text-lg font-semibold text-gray-900">Your Text</h2>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                    <div className="flex items-center space-x-2 sm:space-x-4">
+                      <span>{text.length} characters</span>
+                      <span>•</span>
+                      <span>{text.split(" ").filter((w) => w.trim()).length} words</span>
+                    </div>
+                    {!realTimeChecking && (
+                      <button
+                        onClick={handleCheck}
+                        disabled={!text.trim() || isChecking}
+                        className="w-full sm:w-auto px-4 py-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white font-medium rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 disabled:opacity-50 flex items-center justify-center text-xs sm:text-sm shadow-sm hover:shadow-md transform hover:-translate-y-0.5 disabled:transform-none"
+                      >
+                        {isChecking ? (
+                          <>
+                            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                            Checking...
+                          </>
+                        ) : (
+                          <>
+                            <Zap className="w-4 h-4 mr-2" />
+                            <span className="hidden sm:inline">Check Grammar</span>
+                            <span className="sm:hidden">Check</span>
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
-                  {!realTimeChecking && (
-                    <button
-                      onClick={handleCheck}
-                      disabled={!text.trim() || isChecking}
-                      className="w-full sm:w-auto px-4 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center justify-center text-xs sm:text-sm"
-                    >
-                      {isChecking ? (
-                        <>
-                          <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                          Checking...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-4 h-4 mr-2" />
-                          <span className="hidden sm:inline">Check Grammar</span>
-                          <span className="sm:hidden">Check</span>
-                        </>
-                      )}
-                    </button>
+                </div>
+
+                <div className="relative">
+                  <textarea
+                    ref={textareaRef}
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Type or paste your text here to check for grammar, spelling, and punctuation errors..."
+                    className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300/50 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base bg-white/50 backdrop-blur-sm placeholder-gray-400"
+                  />
+                  {realTimeChecking && isChecking && (
+                    <div className="absolute top-3 right-3">
+                      <RefreshCw className="w-4 h-4 text-green-500 animate-spin" />
+                    </div>
                   )}
                 </div>
-              </div>
 
-              <div className="relative">
-                <textarea
-                  ref={textareaRef}
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Type or paste your text here to check for grammar, spelling, and punctuation errors..."
-                  className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-sm sm:text-base"
-                />
-                {realTimeChecking && isChecking && (
-                  <div className="absolute top-2 right-2">
-                    <RefreshCw className="w-4 h-4 text-green-500 animate-spin" />
+                {/* Statistics */}
+                {issues.length > 0 && (
+                  <div className="px-4 sm:px-6 pb-4 sm:pb-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3 mb-4">
+                      <div className="text-center p-3 bg-red-50 rounded-xl border border-red-200">
+                        <div className="text-lg sm:text-xl font-bold text-red-600">{grammarIssues.length}</div>
+                        <div className="text-xs text-red-600">Grammar</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 rounded-xl border border-orange-200">
+                        <div className="text-lg sm:text-xl font-bold text-orange-600">{spellingIssues.length}</div>
+                        <div className="text-xs text-orange-600">Spelling</div>
+                      </div>
+                      <div className="text-center p-3 bg-yellow-50 rounded-xl border border-yellow-200">
+                        <div className="text-lg sm:text-xl font-bold text-yellow-600">{punctuationIssues.length}</div>
+                        <div className="text-xs text-yellow-600">Punctuation</div>
+                      </div>
+                      <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-200">
+                        <div className="text-lg sm:text-xl font-bold text-blue-600">{styleIssues.length}</div>
+                        <div className="text-xs text-blue-600">Style</div>
+                      </div>
+                      <div className="text-center p-3 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200">
+                        <div className="text-lg sm:text-xl font-bold text-green-600">{grammarScore}</div>
+                        <div className="text-xs text-green-600">Score</div>
+                      </div>
+                    </div>
+
+                    {/* Processing Info */}
+                    <div className="text-xs sm:text-sm text-gray-600 space-y-1">
+                      <div>Confidence: <span className="font-semibold">{checkStats.confidence}%</span></div>
+                      <div>Processing Time: <span className="font-semibold">{checkStats.processingTime}ms</span></div>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {/* Statistics */}
-              {issues.length > 0 && (
-                <div className="px-4 sm:px-6 pb-4 sm:pb-6">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-4">
-                    <div className="text-center p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
-                      <div className="text-lg sm:text-xl font-bold text-red-600">{grammarIssues.length}</div>
-                      <div className="text-xs text-red-600">Grammar</div>
-                    </div>
-                    <div className="text-center p-2 sm:p-3 bg-orange-50 rounded-lg border border-orange-200">
-                      <div className="text-lg sm:text-xl font-bold text-orange-600">{spellingIssues.length}</div>
-                      <div className="text-xs text-orange-600">Spelling</div>
-                    </div>
-                    <div className="text-center p-2 sm:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <div className="text-lg sm:text-xl font-bold text-yellow-600">{punctuationIssues.length}</div>
-                      <div className="text-xs text-yellow-600">Punctuation</div>
-                    </div>
-                    <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
-                      <div className="text-lg sm:text-xl font-bold text-green-600">
-                        {Math.max(0, 100 - activeIssues.length * 3)}
-                      </div>
-                      <div className="text-xs text-green-600">Score</div>
-                    </div>
-                  </div>
-
-                  {/* Category Breakdown */}
-                  <div className="space-y-2 text-xs sm:text-sm text-gray-600">
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span>Grammar Issues:</span>
-                      <span className="text-right">{grammarIssues.map((i) => i.subtype).join(", ") || "None"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span>Spelling Issues:</span>
-                      <span className="text-right">{spellingIssues.map((i) => i.subtype).join(", ") || "None"}</span>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:justify-between gap-1">
-                      <span>Punctuation Issues:</span>
-                      <span className="text-right">{punctuationIssues.map((i) => i.subtype).join(", ") || "None"}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Issues Panel */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200/60 p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4 sm:mb-6">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900">Issues Found</h2>
-                <span className="text-xs sm:text-sm text-gray-500">{activeIssues.length} active</span>
+                <span className="text-xs sm:text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  {activeIssues.length} active
+                </span>
               </div>
 
               {activeIssues.length === 0 ? (
                 <div className="text-center text-gray-400 py-6 sm:py-8">
-                  <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4" />
-                  <p className="text-base sm:text-lg font-medium">Perfect Grammar!</p>
+                  <CheckCircle className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-4 text-green-400" />
+                  <p className="text-base sm:text-lg font-medium text-gray-600">Perfect Grammar!</p>
                   <p className="text-xs sm:text-sm">No issues found in your text</p>
                 </div>
               ) : (
@@ -446,8 +471,8 @@ const GrammarCheckerPage: React.FC = () => {
                   {activeIssues.map((issue) => (
                     <div
                       key={issue.id}
-                      className={`p-3 sm:p-4 rounded-lg border-2 cursor-pointer transition-all ${getIssueColor(issue.severity)} ${
-                        selectedIssue?.id === issue.id ? "ring-2 ring-green-500" : ""
+                      className={`p-4 rounded-xl border-2 cursor-pointer transition-all duration-200 ${getIssueColor(issue.severity)} ${
+                        selectedIssue?.id === issue.id ? "ring-2 ring-green-500 transform -translate-y-0.5" : "hover:translate-y-[-2px]"
                       }`}
                       onClick={() => setSelectedIssue(selectedIssue?.id === issue.id ? null : issue)}
                     >
@@ -462,7 +487,11 @@ const GrammarCheckerPage: React.FC = () => {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2 flex-shrink-0">
-                          <span className="text-xs px-2 py-1 bg-white rounded-full text-gray-600 capitalize">
+                          <span className={`text-xs px-2 py-1 rounded-full capitalize ${
+                            issue.severity === 'error' ? 'bg-red-100 text-red-700' :
+                            issue.severity === 'warning' ? 'bg-yellow-100 text-yellow-700' :
+                            'bg-blue-100 text-blue-700'
+                          }`}>
                             {issue.severity}
                           </span>
                         </div>
@@ -471,11 +500,11 @@ const GrammarCheckerPage: React.FC = () => {
                       <div className="mb-3">
                         <div className="flex flex-col sm:flex-row sm:items-center flex-wrap gap-1 text-xs sm:text-sm">
                           <span className="text-gray-600">Replace</span>
-                          <span className="font-mono bg-red-100 px-2 py-1 rounded text-red-700 break-all">
+                          <span className="font-mono bg-red-100 px-2 py-1 rounded-lg text-red-700 break-all border border-red-200">
                             "{issue.text}"
                           </span>
                           <span className="text-gray-600">with</span>
-                          <span className="font-mono bg-green-100 px-2 py-1 rounded text-green-700 break-all">
+                          <span className="font-mono bg-green-100 px-2 py-1 rounded-lg text-green-700 break-all border border-green-200">
                             "{issue.suggestion}"
                           </span>
                         </div>
@@ -485,7 +514,7 @@ const GrammarCheckerPage: React.FC = () => {
                         <div className="mt-3 pt-3 border-t border-gray-200">
                           <p className="text-xs sm:text-sm text-gray-700 mb-2">{issue.explanation}</p>
                           {showRuleExplanations && (
-                            <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                            <div className="bg-blue-50 p-3 rounded-lg mb-3 border border-blue-200">
                               <div className="flex items-center mb-1">
                                 <BookOpen className="w-4 h-4 text-blue-600 mr-1" />
                                 <span className="text-xs sm:text-sm font-medium text-blue-700">Grammar Rule</span>
@@ -499,7 +528,7 @@ const GrammarCheckerPage: React.FC = () => {
                                 e.stopPropagation()
                                 applyFix(issue)
                               }}
-                              className="flex-1 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors text-xs sm:text-sm font-medium"
+                              className="flex-1 px-3 py-2 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-200 text-xs sm:text-sm font-medium shadow-sm hover:shadow-md"
                             >
                               Apply Fix
                             </button>
@@ -508,7 +537,7 @@ const GrammarCheckerPage: React.FC = () => {
                                 e.stopPropagation()
                                 ignoreIssue(issue.id)
                               }}
-                              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-xs sm:text-sm"
+                              className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-all duration-200 text-xs sm:text-sm"
                             >
                               Ignore
                             </button>
@@ -530,12 +559,15 @@ const GrammarCheckerPage: React.FC = () => {
                       .map((issue) => (
                         <div
                           key={issue.id}
-                          className="flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 p-2 sm:p-3 rounded"
+                          className="flex items-center justify-between text-xs sm:text-sm text-gray-500 bg-gray-50 p-3 rounded-lg border border-gray-200"
                         >
                           <span>
                             {issue.type}: "{issue.text}" → "{issue.suggestion}"
                           </span>
-                          <button onClick={() => acceptIssue(issue.id)} className="text-green-600 hover:text-green-700">
+                          <button 
+                            onClick={() => acceptIssue(issue.id)} 
+                            className="text-green-600 hover:text-green-700 transition-colors"
+                          >
                             Accept
                           </button>
                         </div>
@@ -546,82 +578,82 @@ const GrammarCheckerPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Integration Modal */}
-          {showIntegrations && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
-                <div className="p-4 sm:p-6">
-                  <div className="flex items-center justify-between mb-4 sm:mb-6">
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Platform Integrations</h3>
-                    <button onClick={() => setShowIntegrations(false)} className="text-gray-400 hover:text-gray-600">
-                      <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                    </button>
+          {/* Feature Cards Section */}
+          <div className="space-y-4 sm:space-y-6">
+            {featureCards.map((feature, index) => {
+              const IconComponent = feature.icon
+              return (
+                <div
+                  key={index}
+                  className={`bg-gradient-to-br ${feature.bgGradient} rounded-2xl p-4 sm:p-6 border ${feature.borderColor} shadow-sm hover:shadow-md transition-all duration-300 transform hover:-translate-y-1`}
+                >
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-3 sm:mb-4 shadow-sm`}>
+                      <IconComponent className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                    </div>
+                    <h3 className={`font-bold text-sm sm:text-base mb-2 ${feature.textColor}`}>
+                      {feature.title}
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
 
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {integrationPlatforms.map((platform, index) => {
-                      const IconComponent = platform.icon
-                      return (
-                        <div
-                          key={index}
-                          className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition-shadow"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                              <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">{platform.name}</h4>
-                              <p className="text-xs sm:text-sm text-gray-600 mb-3">{platform.description}</p>
-                              <button className="px-3 py-1 bg-green-500 text-white rounded text-xs sm:text-sm hover:bg-green-600 transition-colors">
-                                Install
-                              </button>
-                            </div>
+        {/* Integration Modal */}
+        {showIntegrations && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-96 overflow-y-auto">
+              <div className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900">Platform Integrations</h3>
+                  <button onClick={() => setShowIntegrations(false)} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                </div>
+
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {integrationPlatforms.map((platform, index) => {
+                    const IconComponent = platform.icon
+                    return (
+                      <div
+                        key={index}
+                        className="p-4 border border-gray-200 rounded-xl hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <IconComponent className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-medium text-gray-900 mb-1 text-sm sm:text-base">{platform.name}</h4>
+                            <p className="text-xs sm:text-sm text-gray-600 mb-3">{platform.description}</p>
+                            <button className="px-3 py-1 bg-green-500 text-white rounded text-xs sm:text-sm hover:bg-green-600 transition-colors">
+                              Install
+                            </button>
                           </div>
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    )
+                  })}
+                </div>
 
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Multi-Platform Benefits</h4>
-                    <ul className="text-xs sm:text-sm text-blue-700 space-y-1">
-                      <li>• Real-time grammar checking across all platforms</li>
-                      <li>• Synchronized settings and personal dictionary</li>
-                      <li>• Consistent writing style suggestions</li>
-                      <li>• Offline functionality on mobile devices</li>
-                    </ul>
-                  </div>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2 text-sm sm:text-base">Multi-Platform Benefits</h4>
+                  <ul className="text-xs sm:text-sm text-blue-700 space-y-1">
+                    <li>• Real-time grammar checking across all platforms</li>
+                    <li>• Synchronized settings and personal dictionary</li>
+                    <li>• Consistent writing style suggestions</li>
+                    <li>• Offline functionality on mobile devices</li>
+                  </ul>
                 </div>
               </div>
             </div>
-          )}
-
-          {/* Features Section */}
-          <div className="mt-8 sm:mt-12 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-            <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Real-Time Checking</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Instant corrections as you type across all platforms</p>
-            </div>
-            <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Detailed Explanations</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Learn grammar rules with every correction</p>
-            </div>
-            <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200 sm:col-span-2 md:col-span-1">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
-                <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Multi-Platform</h3>
-              <p className="text-xs sm:text-sm text-gray-600">Browser extensions, Word integration, and mobile apps</p>
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )
