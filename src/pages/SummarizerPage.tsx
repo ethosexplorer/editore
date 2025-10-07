@@ -14,6 +14,11 @@ const SummarizerPage: React.FC = () => {
   const [bulkSummaries, setBulkSummaries] = useState<{ fileName: string; summary: string }[]>([])
   const [keywords, setKeywords] = useState<string[]>([])
   const [showKeywords, setShowKeywords] = useState(false)
+  const [summaryStats, setSummaryStats] = useState({
+    originalLength: 0,
+    summaryLength: 0,
+    reduction: 0
+  })
 
   const modeOptions = [
     { id: "paragraph", name: "Paragraph", icon: Type, description: "Standard paragraph format" },
@@ -35,39 +40,10 @@ const SummarizerPage: React.FC = () => {
         (word) =>
           word.length > 4 &&
           ![
-            "the",
-            "and",
-            "for",
-            "are",
-            "but",
-            "not",
-            "you",
-            "all",
-            "can",
-            "had",
-            "her",
-            "was",
-            "one",
-            "our",
-            "out",
-            "day",
-            "get",
-            "has",
-            "him",
-            "his",
-            "how",
-            "its",
-            "may",
-            "new",
-            "now",
-            "old",
-            "see",
-            "two",
-            "who",
-            "boy",
-            "did",
-            "man",
-            "way",
+            "the", "and", "for", "are", "but", "not", "you", "all", "can", "had",
+            "her", "was", "one", "our", "out", "day", "get", "has", "him", "his",
+            "how", "its", "may", "new", "now", "old", "see", "two", "who", "boy",
+            "did", "man", "way",
           ].includes(word),
       )
 
@@ -80,6 +56,11 @@ const SummarizerPage: React.FC = () => {
       .sort(([, a], [, b]) => b - a)
       .slice(0, 8)
       .map(([word]) => word)
+  }
+
+  const getApiBaseUrl = () => {
+    // Use the same base URL logic as your other components
+    return typeof window !== 'undefined' ? window.location.origin : ''
   }
 
   const handleSummarize = async () => {
@@ -99,31 +80,95 @@ const SummarizerPage: React.FC = () => {
     const extractedKeywords = extractKeywords(inputText)
     setKeywords(extractedKeywords)
 
-    setTimeout(() => {
-      const sentences = inputText.split(/[.!?]+/).filter((s) => s.trim())
-      const summaryCount = summaryLength === "short" ? 2 : summaryLength === "medium" ? 4 : 7
-      const selectedSentences = sentences.slice(0, summaryCount)
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/summarize`
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: inputText,
+          length: summaryLength,
+          mode: summaryMode
+        }),
+      })
 
-      let formattedSummary = ""
-      if (summaryMode === "bullet") {
-        formattedSummary = selectedSentences.map((s) => `• ${s.trim()}`).join("\n")
-      } else if (summaryMode === "custom") {
-        formattedSummary = selectedSentences.map((s, i) => `${i + 1}. ${s.trim()}`).join("\n")
-      } else {
-        formattedSummary = selectedSentences.join(". ") + "."
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result = await response.json()
+
+      // Format the summary based on the selected mode
+      let formattedSummary = result.summary
+      if (summaryMode === "bullet" && !formattedSummary.includes("•")) {
+        // Convert to bullet points if not already formatted
+        const sentences = formattedSummary.split(/[.!?]+/).filter((s: string) => s.trim())
+        formattedSummary = sentences.map((s: string) => `• ${s.trim()}`).join("\n")
+      } else if (summaryMode === "custom" && !formattedSummary.match(/^\d+\./)) {
+        // Convert to numbered list if not already formatted
+        const sentences = formattedSummary.split(/[.!?]+/).filter((s: string) => s.trim())
+        formattedSummary = sentences.map((s: string, i: number) => `${i + 1}. ${s.trim()}`).join("\n")
       }
 
       setSummary(formattedSummary)
+      setSummaryStats({
+        originalLength: result.originalLength,
+        summaryLength: result.summaryLength,
+        reduction: result.reduction
+      })
 
+      // Handle bulk summaries for uploaded files
       if (files.length > 0) {
         const bulkData = files.map((file) => ({
           fileName: file.name,
-          summary: selectedSentences.slice(0, Math.floor(summaryCount / files.length)).join(". ") + ".",
+          summary: `Summary for ${file.name}: ${formattedSummary.substring(0, 100)}...`,
         }))
         setBulkSummaries(bulkData)
       }
+
+    } catch (error) {
+      console.error("Summarization error:", error)
+      // Fallback to mock summarization if API fails
+      handleMockSummarize()
+    } finally {
       setIsProcessing(false)
-    }, 2000)
+    }
+  }
+
+  const handleMockSummarize = async () => {
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 2000))
+
+    const sentences = inputText.split(/[.!?]+/).filter((s) => s.trim())
+    const summaryCount = summaryLength === "short" ? 2 : summaryLength === "medium" ? 4 : 7
+    const selectedSentences = sentences.slice(0, summaryCount)
+
+    let formattedSummary = ""
+    if (summaryMode === "bullet") {
+      formattedSummary = selectedSentences.map((s) => `• ${s.trim()}`).join("\n")
+    } else if (summaryMode === "custom") {
+      formattedSummary = selectedSentences.map((s, i) => `${i + 1}. ${s.trim()}`).join("\n")
+    } else {
+      formattedSummary = selectedSentences.join(". ") + "."
+    }
+
+    setSummary(formattedSummary)
+    setSummaryStats({
+      originalLength: inputText.length,
+      summaryLength: formattedSummary.length,
+      reduction: Math.round((1 - formattedSummary.length / inputText.length) * 100)
+    })
+
+    if (files.length > 0) {
+      const bulkData = files.map((file) => ({
+        fileName: file.name,
+        summary: selectedSentences.slice(0, Math.floor(summaryCount / files.length)).join(". ") + ".",
+      }))
+      setBulkSummaries(bulkData)
+    }
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,17 +207,42 @@ const SummarizerPage: React.FC = () => {
     return Math.round((1 - summary.length / inputText.length) * 100)
   }
 
-  const paraphraseSummary = () => {
+  const paraphraseSummary = async () => {
     if (!summary) return
     setIsProcessing(true)
-    setTimeout(() => {
+
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/paraphrase`
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: summary,
+          mode: "standard"
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result = await response.json()
+      setSummary(result.paraphrasedText || result.outputText || summary)
+
+    } catch (error) {
+      console.error("Paraphrase error:", error)
+      // Fallback to simple paraphrase if API fails
       const paraphrased = summary.replace(/\b(is|are|was|were)\b/g, (match) => {
         const alternatives = { is: "becomes", are: "represent", was: "existed as", were: "functioned as" }
         return alternatives[match as keyof typeof alternatives] || match
       })
       setSummary(paraphrased)
+    } finally {
       setIsProcessing(false)
-    }, 1500)
+    }
   }
 
   const wordCount = inputText
@@ -277,11 +347,6 @@ const SummarizerPage: React.FC = () => {
 
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                <div className="flex items-center space-x-3 sm:space-x-4">
-                  <span className="text-xs sm:text-sm font-medium text-gray-700">
-                    1. User Registration & Onboarding
-                  </span>
-                </div>
                 <div className="flex items-center space-x-2">
                   <label className="flex items-center px-2 py-1 sm:px-3 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded cursor-pointer">
                     <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
@@ -297,7 +362,10 @@ const SummarizerPage: React.FC = () => {
                   <button className="p-1 text-gray-400 hover:text-gray-600">
                     <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
-                  <button className="p-1 text-gray-400 hover:text-gray-600">
+                  <button 
+                    onClick={() => setInputText("")}
+                    className="p-1 text-gray-400 hover:text-red-500"
+                  >
                     <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                 </div>
@@ -306,19 +374,6 @@ const SummarizerPage: React.FC = () => {
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Flow:
-
-User Sign-Up:
-
-Email & Password / OAuth Login (Google, LinkedIn, SSO)
-
-Two-Factor Authentication (2FA) setup
-
-Profile Setup:
-
-Basic Details: Name, Role, Organization, Compliance Level
-
-User Type Selection: Individual / Team / Developer"
                 className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent text-xs sm:text-sm"
               />
 
@@ -391,41 +446,66 @@ User Type Selection: Individual / Team / Developer"
               </div>
 
               {summary && (
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
-                  <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm text-gray-600">
-                    <span>
-                      <span className="font-medium">{sentenceCount}</span> sentences
-                    </span>
-                    <span>•</span>
-                    <span>
-                      <span className="font-medium">{summaryWordCount}</span> words
-                    </span>
-                  </div>
-                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
-                    <button
-                      onClick={paraphraseSummary}
-                      className="px-3 py-2 sm:px-4 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors text-xs sm:text-sm"
-                    >
-                      Paraphrase Summary
-                    </button>
-                    <div className="flex space-x-2">
-                      <button
-                        onClick={handleCopy}
-                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Copy to clipboard"
-                      >
-                        <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
-                      <button
-                        onClick={handleDownload}
-                        className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Download as file"
-                      >
-                        <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                      </button>
+                <>
+                  {/* Summary Statistics */}
+                  <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
+                    <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-base sm:text-lg font-bold text-blue-600">
+                        {summaryStats.reduction}%
+                      </div>
+                      <div className="text-xs text-blue-600">Reduction</div>
+                    </div>
+                    <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-base sm:text-lg font-bold text-green-600">
+                        {sentenceCount}
+                      </div>
+                      <div className="text-xs text-green-600">Sentences</div>
+                    </div>
+                    <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <div className="text-base sm:text-lg font-bold text-purple-600">
+                        {summaryWordCount}
+                      </div>
+                      <div className="text-xs text-purple-600">Words</div>
                     </div>
                   </div>
-                </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
+                    <div className="flex items-center space-x-2 sm:space-x-4 text-xs sm:text-sm text-gray-600">
+                      <span>
+                        <span className="font-medium">{sentenceCount}</span> sentences
+                      </span>
+                      <span>•</span>
+                      <span>
+                        <span className="font-medium">{summaryWordCount}</span> words
+                      </span>
+                    </div>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
+                      <button
+                        onClick={paraphraseSummary}
+                        disabled={isProcessing}
+                        className="px-3 py-2 sm:px-4 text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors text-xs sm:text-sm disabled:opacity-50"
+                      >
+                        {isProcessing ? "Paraphrasing..." : "Paraphrase Summary"}
+                      </button>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={handleCopy}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Copy to clipboard"
+                        >
+                          <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                        <button
+                          onClick={handleDownload}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="Download as file"
+                        >
+                          <Download className="w-3 h-3 sm:w-4 sm:h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -446,28 +526,7 @@ User Type Selection: Individual / Team / Developer"
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #10b981;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          border-radius: 50%;
-          background: #10b981;
-          cursor: pointer;
-          border: 2px solid white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-      `}</style>
+      
     </div>
   )
 }
