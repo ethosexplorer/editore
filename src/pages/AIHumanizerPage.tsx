@@ -1,139 +1,119 @@
-"use client"
-
-import type React from "react"
 import { useState, useRef } from "react"
-import { RefreshCw, Copy, Download, Globe, Upload, Crown, BookOpen, Lightbulb, X, Menu, BarChart3, Sparkles } from "lucide-react"
+import {
+  Users,
+  Zap,
+  Copy,
+  Download,
+  Shuffle,
+  Type,
+  Palette,
+  Upload,
+  FileText,
+  Trash2,
+  Search,
+  Lock,
+  Globe,
+  Shield,
+} from "lucide-react"
 
-const ParaphraserPage: React.FC = () => {
+interface HumanizationResult {
+  originalText: string
+  humanizedText: string
+  humanScore: number
+  aiDetectionBefore: number
+  aiDetectionAfter: number
+  changes: Array<{
+    original: string
+    humanized: string
+    type: string
+    reason: string
+  }>
+  readabilityScore: number
+  creativityLevel: number
+  processingTime: number
+  aiDetectionResults: Array<{
+    detector: string
+    confidence: number
+  }>
+}
+
+interface Language {
+  code: string
+  name: string
+  flag: string
+}
+
+const AIHumanizerPage: React.FC = () => {
   const [inputText, setInputText] = useState("")
-  const [outputText, setOutputText] = useState("")
+  const [result, setResult] = useState<HumanizationResult | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
-  const [mode, setMode] = useState("standard")
-  const [synonymLevel, setSynonymLevel] = useState(50)
-  const [language, setLanguage] = useState("en-US")
-  const [selectedWord, setSelectedWord] = useState<string | null>(null)
-  const [synonyms, setSynonyms] = useState<string[]>([])
-  const [isLoadingSynonyms, setIsLoadingSynonyms] = useState(false)
-  const [isPremium, setIsPremium] = useState(false)
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false)
-  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false)
-  const [apiResult, setApiResult] = useState<any>(null)
-  const outputRef = useRef<HTMLDivElement>(null)
+  const [humanizationMode, setHumanizationMode] = useState("naturalize")
+  const [creativityLevel, setCreativityLevel] = useState(50)
+  const [preserveFormatting, setPreserveFormatting] = useState(true)
+  const [files, setFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [showPremiumModal, setShowPremiumModal] = useState(false)
+  const [isPremium, setIsPremium] = useState(false)
+  const [wordsUsed, setWordsUsed] = useState(0)
+  const [wordsLimit, setWordsLimit] = useState(1000)
+  const [language, setLanguage] = useState("en-US")
 
-  // QuillBot modes - 2 free, 7 premium
-  const allModes = [
-    {
-      id: "standard",
-      name: "Standard",
-      description: "Basic rephrasing that maintains original meaning",
-      premium: false,
-      icon: "🔄",
-    },
-    {
-      id: "fluency",
-      name: "Fluency",
-      description: "Smooths awkward phrasing and improves readability",
-      premium: false,
-      icon: "💬",
-    },
-    {
-      id: "formal",
-      name: "Formal",
-      description: "Professional tone for business writing",
-      premium: true,
-      icon: "👔",
-    },
-    {
-      id: "simple",
-      name: "Simple",
-      description: "Uses simpler vocabulary",
-      premium: true,
-      icon: "📝",
-    },
-    {
-      id: "creative",
-      name: "Creative",
-      description: "Unique and imaginative variations",
-      premium: true,
-      icon: "🎨",
-    },
-    {
-      id: "expand",
-      name: "Expand",
-      description: "Lengthens text by adding detail",
-      premium: true,
-      icon: "📈",
-    },
-    {
-      id: "shorten",
-      name: "Shorten",
-      description: "Condenses text while preserving meaning",
-      premium: true,
-      icon: "📉",
-    },
-    {
-      id: "academic",
-      name: "Academic",
-      description: "Scholarly tone with advanced vocabulary",
-      premium: true,
-      icon: "🎓",
-    },
-    {
-      id: "custom",
-      name: "Custom",
-      description: "User-defined style preferences",
-      premium: true,
-      icon: "⚙️",
-    },
+  const languages: Language[] = [
+    { code: "en-US", name: "English (US)", flag: "🇺🇸" },
+    { code: "en-GB", name: "English (UK)", flag: "🇬🇧" },
+    { code: "en-AU", name: "English (AU)", flag: "🇦🇺" },
+    { code: "en-CA", name: "English (CA)", flag: "🇨🇦" },
+    { code: "fr", name: "French", flag: "🇫🇷" },
+    { code: "es", name: "Spanish", flag: "🇪🇸" },
+    { code: "de", name: "German", flag: "🇩🇪" },
+    { code: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
+    { code: "hi", name: "Hindi", flag: "🇮🇳" },
+    { code: "ru", name: "Russian", flag: "🇷🇺" },
+    { code: "da", name: "Danish", flag: "🇩🇰" },
+    { code: "nl", name: "Dutch", flag: "🇳🇱" },
+    { code: "it", name: "Italian", flag: "🇮🇹" },
+    { code: "ja", name: "Japanese", flag: "🇯🇵" },
+    { code: "ko", name: "Korean", flag: "🇰🇷" },
+    { code: "pl", name: "Polish", flag: "🇵🇱" },
+    { code: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
+    { code: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
+    { code: "sv", name: "Swedish", flag: "🇸🇪" },
+    { code: "tr", name: "Turkish", flag: "🇹🇷" },
+    { code: "ar", name: "Arabic", flag: "🇸🇦" },
+    { code: "th", name: "Thai", flag: "🇹🇭" },
+    { code: "vi", name: "Vietnamese", flag: "🇻🇳" },
+    { code: "uk", name: "Ukrainian", flag: "🇺🇦" },
+    { code: "ro", name: "Romanian", flag: "🇷🇴" },
   ]
 
-  const languages = [
-    { id: "en-US", name: "English (US)", flag: "🇺🇸" },
-    { id: "en-GB", name: "English (UK)", flag: "🇬🇧" },
-    { id: "en-AU", name: "English (AU)", flag: "🇦🇺" },
-    { id: "en-CA", name: "English (CA)", flag: "🇨🇦" },
-    { id: "fr", name: "French", flag: "🇫🇷" },
-    { id: "es", name: "Spanish", flag: "🇪🇸" },
-    { id: "de", name: "German", flag: "🇩🇪" },
-    { id: "zh-CN", name: "Chinese (Simplified)", flag: "🇨🇳" },
-    { id: "hi", name: "Hindi", flag: "🇮🇳" },
-    { id: "ru", name: "Russian", flag: "🇷🇺" },
-    { id: "da", name: "Danish", flag: "🇩🇰" },
-    { id: "nl", name: "Dutch", flag: "🇳🇱" },
-    { id: "it", name: "Italian", flag: "🇮🇹" },
-    { id: "ja", name: "Japanese", flag: "🇯🇵" },
-    { id: "ko", name: "Korean", flag: "🇰🇷" },
-    { id: "pl", name: "Polish", flag: "🇵🇱" },
-    { id: "pt-BR", name: "Portuguese (Brazil)", flag: "🇧🇷" },
-    { id: "pt-PT", name: "Portuguese (Portugal)", flag: "🇵🇹" },
-    { id: "sv", name: "Swedish", flag: "🇸🇪" },
-    { id: "tr", name: "Turkish", flag: "🇹🇷" },
-    { id: "ar", name: "Arabic", flag: "🇸🇦" },
-    { id: "th", name: "Thai", flag: "🇹🇭" },
-    { id: "vi", name: "Vietnamese", flag: "🇻🇳" },
-    { id: "uk", name: "Ukrainian", flag: "🇺🇦" },
-    { id: "ro", name: "Romanian", flag: "🇷🇴" },
+  const humanizationModes = [
+    { id: "naturalize", name: "Keep It Natural", icon: Type, description: "Smooth, everyday style.", premium: false },
+    { id: "synonym", name: "Mix It Up", icon: Shuffle, description: "Swaps words for variety.", premium: false },
+    { id: "creative", name: "Get Creative", icon: Palette, description: "Adds flair & personality.", premium: true },
+    { id: "advanced", name: "Pro Rewrite", icon: Zap, description: "Polished and professional.", premium: true },
+    { id: "bypass", name: "Stealth Mode", icon: Shield, description: "Dodges AI detection tools.", premium: true },
   ]
 
-  const getApiBaseUrl = () => {
-    return typeof window !== 'undefined' ? '' : '';
+  const usagePercentage = (wordsUsed / wordsLimit) * 100
+  const remainingWords = wordsLimit - wordsUsed
+
+  const getCreativityDescription = () => {
+    if (creativityLevel <= 30) return "Subtle"
+    if (creativityLevel <= 70) return "Balanced"
+    return "Bold"
   }
 
-  const handleParaphrase = async () => {
+  const getApiBaseUrl = () => {
+    return ''
+  }
+
+  const handleHumanize = async () => {
+    console.log('Starting humanization...')
     if (!inputText.trim()) return
-
-    const selectedMode = allModes.find((m) => m.id === mode)
-    if (selectedMode?.premium && !isPremium) {
-      setShowUpgradeModal(true)
-      return
-    }
-
     setIsProcessing(true)
-    setApiResult(null)
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/paraphrase`
+      const apiUrl = `${getApiBaseUrl()}/api/humanize`
       console.log('Making request to:', apiUrl)
 
       const response = await fetch(apiUrl, {
@@ -142,380 +122,413 @@ const ParaphraserPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: inputText,
-          mode: mode,
-          synonymLevel: synonymLevel,
-          language: language,
+          inputText,
+          humanizationMode,
+          creativityLevel,
+          language,
         }),
       })
 
       if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
+        throw new Error(`API error: ${response.status} - ${response.statusText}`)
       }
 
-      const result = await response.json()
-      
-      setOutputText(result.paraphrased || result.original)
-      setApiResult(result)
+      const newResult = await response.json()
+
+      // Validate and ensure all required fields exist
+      const validatedResult: HumanizationResult = {
+        originalText: newResult.originalText || inputText,
+        humanizedText: newResult.humanizedText || 'No result returned from API',
+        humanScore: newResult.humanScore || 0,
+        aiDetectionBefore: newResult.aiDetectionBefore || 0,
+        aiDetectionAfter: newResult.aiDetectionAfter || 0,
+        changes: newResult.changes || [],
+        readabilityScore: newResult.readabilityScore || 0,
+        creativityLevel: newResult.creativityLevel || creativityLevel,
+        processingTime: newResult.processingTime || 0,
+        aiDetectionResults: newResult.aiDetectionResults || [],
+      }
+
+      setResult(validatedResult)
+      setWordsUsed(prev => prev + inputText.split(" ").filter(w => w).length)
 
     } catch (error) {
-      console.error("Paraphrasing error:", error)
-      handleMockParaphrase()
+      console.error("Humanization error:", error)
+      // Fallback to mock data if API fails
+      handleMockHumanize()
     } finally {
       setIsProcessing(false)
     }
   }
 
-  const handleMockParaphrase = () => {
-    // Simple mock paraphrasing for fallback
-    let paraphrased = inputText
+  const handleMockHumanize = async () => {
+    if (!inputText.trim()) return
+    setIsProcessing(true)
 
-    // Basic transformations for demo
-    const transformations = {
-      "Artificial Intelligence": "AI technology",
-      "reshaping": "transforming",
-      "marketing landscape": "marketing environment",
-      "enabling businesses": "helping companies",
-      "engage customers": "connect with clients",
-      "unprecedented precision": "remarkable accuracy",
-      "leveraging": "using",
-      "data-driven insights": "information-based analysis",
-      "empowers marketers": "assists marketers",
-      "personalized": "customized",
-      "explores": "examines"
-    }
+    // Simulate API delay
+    await new Promise(resolve => setTimeout(resolve, 1500))
 
-    Object.entries(transformations).forEach(([original, replacement]) => {
-      const regex = new RegExp(original, "gi")
-      paraphrased = paraphrased.replace(regex, replacement)
-    })
-
-    setOutputText(paraphrased)
-    setApiResult({
-      original: inputText,
-      paraphrased: paraphrased,
-      mode: mode,
-      synonymLevel: synonymLevel,
-      language: language,
-      wordCountOriginal: inputText.split(/\s+/).filter(w => w).length,
-      wordCountParaphrased: paraphrased.split(/\s+/).filter(w => w).length,
-      changes: Math.floor(8 + (synonymLevel / 100) * 12),
-      processingTime: Math.floor(Math.random() * 2) + 1,
-      readabilityImprovement: Math.min(25, 5 + (synonymLevel / 100) * 10),
-      similarityScore: Math.max(30, 85 - (synonymLevel / 100) * 35),
-    })
-  }
-
-  const handleWordClick = async (word: string, event: React.MouseEvent) => {
-    event.stopPropagation()
-    const cleanWord = word.replace(/[^\w]/g, "").toLowerCase()
-    
-    // Don't process very short words or common articles
-    if (cleanWord.length < 3 || ['a', 'an', 'the', 'and', 'or', 'but', 'is', 'are', 'was', 'were'].includes(cleanWord)) {
-      return
-    }
-
-    setSelectedWord(cleanWord)
-    setIsLoadingSynonyms(true)
-    setSynonyms([])
-
-    try {
-      const apiUrl = `${getApiBaseUrl()}/api/synonyms`
-      
-      // Get context around the word (3 words before and after for better understanding)
-      const words = outputText.split(/\s+/)
-      const wordIndex = words.findIndex(w => w.toLowerCase().includes(cleanWord))
-      const contextStart = Math.max(0, wordIndex - 3)
-      const contextEnd = Math.min(words.length, wordIndex + 4)
-      const context = words.slice(contextStart, contextEnd).join(" ")
-
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+    const mockResult: HumanizationResult = {
+      originalText: inputText,
+      humanizedText: `Humanized version: ${inputText}\n\nThis text has been transformed to sound more natural and human-like. The writing style has been adjusted to include casual expressions, varied sentence structures, and natural flow that mimics human writing patterns. The result is content that feels authentic and engaging while maintaining the original meaning and intent.`,
+      humanScore: 85 + Math.random() * 15,
+      aiDetectionBefore: 60 + Math.random() * 30,
+      aiDetectionAfter: Math.random() * 10,
+      changes: [
+        {
+          original: "utilize",
+          humanized: "use",
+          type: "word replacement",
+          reason: "More natural vocabulary"
         },
-        body: JSON.stringify({
-          word: cleanWord,
-          context: context,
-          language: language,
-        }),
-      })
+        {
+          original: "in order to",
+          humanized: "to",
+          type: "phrase simplification",
+          reason: "More concise"
+        },
+        {
+          original: "commence",
+          humanized: "start",
+          type: "word replacement", 
+          reason: "Everyday language"
+        }
+      ],
+      readabilityScore: 75 + Math.random() * 20,
+      creativityLevel,
+      processingTime: Math.floor(Math.random() * 2) + 1,
+      aiDetectionResults: [
+        { detector: "TextSentry", confidence: Math.random() * 5 },
+        { detector: "AIClassifier", confidence: Math.random() * 5 },
+        { detector: "ContentGuard", confidence: Math.random() * 5 },
+        { detector: "AI Detector Pro", confidence: Math.random() * 5 },
+      ],
+    }
 
-      if (!response.ok) {
-        throw new Error(`Synonyms API error: ${response.status}`)
+    setResult(mockResult)
+    setWordsUsed(prev => prev + inputText.split(" ").filter(w => w).length)
+    setIsProcessing(false)
+  }
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const uploadedFiles = Array.from(event.target.files || [])
+    if (uploadedFiles.length > 0) {
+      setFiles((prev) => [...prev, ...uploadedFiles])
+
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        setInputText((prev) => prev + (prev ? "\n" : "") + content)
       }
-
-      const result = await response.json()
-      setSynonyms(result.synonyms || [])
-
-    } catch (error) {
-      console.error("Synonyms error:", error)
-      // Even the fallback will be dynamic through the API's mock system
-      setSynonyms(["loading", "failed", "try", "again"])
-    } finally {
-      setIsLoadingSynonyms(false)
+      reader.readAsText(uploadedFiles[0])
     }
   }
 
-  const replaceWord = (synonym: string) => {
-    if (selectedWord && outputRef.current) {
-      // Create a regex that matches the selected word with word boundaries
-      const regex = new RegExp(`\\b${selectedWord}\\b`, "gi")
-      const newText = outputText.replace(regex, synonym)
-      setOutputText(newText)
-      setSelectedWord(null)
-      setSynonyms([])
-    }
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
-  const getSynonymLevelDescription = () => {
-    if (synonymLevel < 25) return "Conservative"
-    if (synonymLevel < 50) return "Balanced"
-    if (synonymLevel < 75) return "Creative"
-    return "Maximum creativity"
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text)
   }
 
   const downloadResult = () => {
-    if (!apiResult) return
+    if (!result) return
 
-    const reportContent = `PARAPHRASING REPORT
+    const reportContent = `HUMANIZATION REPORT
 ==================
 
 Original Text:
-${apiResult.original}
+${result.originalText}
 
-Paraphrased Text:
-${outputText}
+Humanized Text:
+${result.humanizedText}
 
-Analysis Metrics:
-- Mode: ${apiResult.mode}
-- Synonym Level: ${apiResult.synonymLevel}%
-- Language: ${apiResult.language}
-- Word Count: ${apiResult.wordCountOriginal} → ${apiResult.wordCountParaphrased}
-- Changes Made: ${apiResult.changes}
-- Readability Improvement: ${apiResult.readabilityImprovement}%
-- Similarity Score: ${apiResult.similarityScore}%
-- Processing Time: ${apiResult.processingTime}s
+Metrics:
+- Human Score: ${(result.humanScore || 0).toFixed(1)}%
+- AI Detection (Before): ${(result.aiDetectionBefore || 0).toFixed(1)}%
+- AI Detection (After): ${(result.aiDetectionAfter || 0).toFixed(1)}%
+- Readability Score: ${(result.readabilityScore || 0).toFixed(1)}%
+- Mode: ${humanizationMode}
+- Creativity Level: ${creativityLevel}/100
 
-Generated by AI Paraphraser
-${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
+Changes Made:
+${(result.changes || []).map((change) => `- "${change.original}" → "${change.humanized}" (${change.reason})`).join("\n")}
+
+AI Detection Results:
+${(result.aiDetectionResults || []).map((detection) => `- ${detection.detector}: ${(detection.confidence || 0).toFixed(1)}% AI-like`).join("\n")}
+
+Generated by AI Humanizer
+${new Date().toLocaleDateString()}`
 
     const blob = new Blob([reportContent], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
     a.href = url
-    a.download = `paraphrase-${new Date().getTime()}.txt`
+    a.download = "humanization-report.txt"
     a.click()
     URL.revokeObjectURL(url)
   }
 
-  const clearAll = () => {
-    setInputText("")
-    setOutputText("")
-    setApiResult(null)
-    setSelectedWord(null)
-    setSynonyms([])
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3 sm:space-x-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-                <RefreshCw className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Users className="w-4 h-4 sm:w-6 sm:h-6 text-white" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  AI Paraphraser
-                </h1>
-                <p className="text-sm text-gray-600 hidden sm:block mt-1">
-                  Transform your text with AI-powered rephrasing and dynamic synonyms
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">AI Humanizer</h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
+                  Transform AI-generated text into natural, human-like content
                 </p>
               </div>
             </div>
-            <div className="flex items-center space-x-2 sm:space-x-3">
-              <button className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-xl font-medium hover:bg-gray-50 transition-all duration-200 flex items-center text-sm shadow-sm">
-                <Globe className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Apps</span>
+            <div className="flex items-center justify-between sm:justify-end space-x-2 sm:space-x-3">
+              <button
+                className="px-3 py-2 sm:px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex items-center text-xs sm:text-sm"
+              >
+                <Search className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                <span className="hidden sm:inline">AI Detection</span>
+                <span className="sm:hidden">Detect</span>
               </button>
               <button
-                onClick={() => setIsPremium(!isPremium)}
-                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center text-sm shadow-lg"
+                onClick={() => setShowPremiumModal(true)}
+                className="px-3 py-2 sm:px-4 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 transition-colors text-xs sm:text-sm"
               >
-                <Crown className="w-4 h-4 mr-2" />
-                <span>{isPremium ? "Free Plan" : "Go Premium"}</span>
+                <span className="hidden sm:inline">Upgrade to Premium</span>
+                <span className="sm:hidden">Premium</span>
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* Mode Selection */}
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-6 mb-4 sm:mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Select Mode</h3>
-            <span className="text-sm text-gray-500">{getSynonymLevelDescription()} mode</span>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-9 gap-2">
-            {allModes.map((modeOption) => (
+          {/* Usage Stats */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs sm:text-sm font-medium text-gray-700">Words Used This Month</span>
+              <span className="text-xs sm:text-sm text-gray-600">
+                {wordsUsed.toLocaleString()} / {wordsLimit.toLocaleString()}
+              </span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div
+                className={`h-2 rounded-full transition-all ${usagePercentage > 90 ? "bg-red-500" : usagePercentage > 70 ? "bg-yellow-500" : "bg-purple-500"}`}
+                style={{ width: `${Math.min(usagePercentage, 100)}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+              <span>{remainingWords.toLocaleString()} words remaining</span>
               <button
-                key={modeOption.id}
-                onClick={() => {
-                  if (modeOption.premium && !isPremium) {
-                    setShowUpgradeModal(true)
-                  } else {
-                    setMode(modeOption.id)
-                  }
-                }}
-                className={`p-3 rounded-xl border-2 transition-all duration-200 ${
-                  mode === modeOption.id
-                    ? "border-blue-500 bg-blue-50 shadow-md"
-                    : "border-gray-200 hover:border-blue-300 hover:bg-blue-25"
-                } ${modeOption.premium && !isPremium ? "opacity-75 relative" : ""}`}
+                onClick={() => setShowPremiumModal(true)}
+                className="text-purple-600 hover:text-purple-700 font-medium"
               >
-                <div className="text-center">
-                  <div className="text-lg mb-1">{modeOption.icon}</div>
-                  <div className="font-medium text-gray-900 text-xs">{modeOption.name}</div>
-                  {modeOption.premium && !isPremium && (
-                    <Crown className="w-3 h-3 text-yellow-500 absolute -top-1 -right-1" />
-                  )}
-                </div>
+                Get unlimited
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Settings Bar */}
-        <div className="bg-white rounded-2xl shadow-lg border border-blue-100 mb-4 sm:mb-6">
-          <div className="flex items-center justify-between p-4 lg:hidden">
-            <h3 className="text-sm font-medium text-gray-700">Settings</h3>
-            <button
-              onClick={() => setMobileSettingsOpen(!mobileSettingsOpen)}
-              className="p-2 text-gray-600 hover:text-gray-900"
-            >
-              {mobileSettingsOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-            </button>
-          </div>
-
-          <div className={`${mobileSettingsOpen ? "block" : "hidden"} lg:block p-4`}>
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-4 sm:gap-6 flex-1">
-                <div className="flex items-center space-x-3 bg-gray-50 rounded-lg p-3 flex-1">
-                  <Globe className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="bg-transparent border-0 focus:ring-0 text-sm w-full"
-                  >
-                    {languages.map((lang) => (
-                      <option key={lang.id} value={lang.id}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="flex items-center space-x-3 bg-gray-50 rounded-lg p-3 flex-1">
-                  <BarChart3 className="w-5 h-5 text-blue-600 flex-shrink-0" />
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs text-gray-600 mb-1">
-                      <span>Creativity Level</span>
-                      <span>{synonymLevel}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={synonymLevel}
-                      onChange={(e) => setSynonymLevel(Number(e.target.value))}
-                      className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={clearAll}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors text-sm"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors text-sm flex items-center"
-                >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload
-                </button>
-              </div>
             </div>
           </div>
         </div>
 
+        {/* Humanization Modes */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">Humanization Mode</h3>
+            <span className="text-xs sm:text-sm text-gray-500">Choose your preferred style</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3">
+            {humanizationModes.map((mode) => {
+              const IconComponent = mode.icon
+              return (
+                <button
+                  key={mode.id}
+                  onClick={() =>
+                    mode.premium && !isPremium ? setShowPremiumModal(true) : setHumanizationMode(mode.id)
+                  }
+                  className={`relative p-3 sm:p-4 rounded-lg border-2 transition-all ${
+                    humanizationMode === mode.id
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-200 hover:border-purple-300"
+                  } ${mode.premium && !isPremium ? "opacity-75" : ""}`}
+                >
+                  <div className="flex items-center justify-center mb-2">
+                    <IconComponent
+                      className={`w-4 h-4 sm:w-5 sm:h-5 ${humanizationMode === mode.id ? "text-purple-600" : "text-gray-600"}`}
+                    />
+                    {mode.premium && !isPremium && (
+                      <Lock className="w-3 h-3 text-yellow-500 absolute -top-1 -right-1" />
+                    )}
+                  </div>
+                  <div className="font-medium text-gray-900 text-xs sm:text-sm">{mode.name}</div>
+                  <div className="text-xs text-gray-500 mt-1 hidden sm:block">{mode.description}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Settings Panel */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 mb-4 sm:mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row lg:flex-row lg:items-center gap-3 sm:gap-4 lg:gap-6">
+              {/* Language Selector */}
+              <div className="flex items-center space-x-2">
+                <Globe className="w-4 h-4 text-gray-600 flex-shrink-0" />
+                <select
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="border border-gray-300 rounded-lg px-2 py-1 text-xs sm:text-sm focus:ring-2 focus:ring-purple-500 min-w-0"
+                >
+                  {languages.map((lang) => (
+                    <option key={lang.code} value={lang.code}>
+                      {lang.flag} {lang.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Creativity Level */}
+              <div className="flex items-center space-x-2">
+                <span className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">Creativity Level:</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={creativityLevel}
+                  onChange={(e) => setCreativityLevel(Number(e.target.value))}
+                  className="flex-1 sm:w-16 lg:w-20 h-2 bg-purple-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <span className="text-xs text-gray-500 min-w-max">{getCreativityDescription()}</span>
+              </div>
+
+              {/* Preserve Formatting */}
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="preserveFormatting"
+                  checked={preserveFormatting}
+                  onChange={(e) => setPreserveFormatting(e.target.checked)}
+                  className="w-4 h-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                />
+                <label htmlFor="preserveFormatting" className="text-xs sm:text-sm text-gray-700 whitespace-nowrap">
+                  Preserve formatting
+                </label>
+              </div>
+            </div>
+
+            {/* Upload Button */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center justify-center px-3 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-xs sm:text-sm transition-colors"
+            >
+              <Upload className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+              <span className="hidden sm:inline">Upload Document</span>
+              <span className="sm:hidden">Upload</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Area */}
         <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Input Section */}
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100">
+          {/* Input Panel */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            {files.length > 0 && (
+              <div className="p-3 sm:p-4 border-b border-gray-200 bg-gray-50">
+                <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-3">Uploaded Files</h4>
+                <div className="space-y-2">
+                  {files.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between bg-white p-2 sm:p-3 rounded-lg border"
+                    >
+                      <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+                        <FileText className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500 flex-shrink-0" />
+                        <span className="text-xs sm:text-sm font-medium text-gray-900 truncate">{file.name}</span>
+                      </div>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="text-red-500 hover:text-red-700 flex-shrink-0"
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                <h2 className="text-lg font-semibold text-gray-900">Original Text</h2>
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  <span>{inputText.length} chars</span>
-                  <span>•</span>
-                  <span>{inputText.split(" ").filter((w) => w.trim()).length} words</span>
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">AI-Generated Text</h2>
+                <div className="flex items-center space-x-2">
+                  {inputText && (
+                    <>
+                      <button
+                        onClick={() => handleCopy(inputText)}
+                        className="p-1 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Copy"
+                      >
+                        <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </button>
+                      <button
+                        onClick={() => setInputText("")}
+                        className="p-1 sm:p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Clear"
+                      >
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
 
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Paste your text here to rephrase it with AI...&#10;&#10;Example: Artificial Intelligence (AI) is reshaping the marketing landscape, enabling businesses to engage customers with unprecedented precision and efficiency."
-                className="w-full h-72 sm:h-96 p-4 border border-gray-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm sm:text-base leading-relaxed"
+                placeholder="Paste your AI-generated text here to humanize it and make it undetectable by AI detection tools..."
+                className="w-full h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm sm:text-base"
               />
 
               <input
                 ref={fileInputRef}
                 type="file"
                 accept=".txt,.doc,.docx,.pdf"
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    const reader = new FileReader()
-                    reader.onload = (event) => {
-                      const content = event.target?.result as string
-                      setInputText(content)
-                    }
-                    reader.readAsText(file)
-                  }
-                }}
+                multiple
+                onChange={handleFileUpload}
                 className="hidden"
               />
 
-              <div className="flex justify-between items-center mt-4">
-                <div className="text-sm text-gray-500">
-                  {apiResult && (
-                    <span className="text-green-600 font-medium">
-                      Processed in {apiResult.processingTime}s
-                    </span>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-4 gap-3">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
+                  <div className="flex items-center space-x-2 sm:space-x-4">
+                    <span>{inputText.length} characters</span>
+                    <span>•</span>
+                    <span>{inputText.split(" ").filter((w) => w.trim()).length} words</span>
+                  </div>
+                  {result && (
+                    <div className="flex items-center space-x-2">
+                      <span>•</span>
+                      <span className="text-green-600">Processed in {result.processingTime || 0}s</span>
+                    </div>
                   )}
                 </div>
                 <button
-                  onClick={handleParaphrase}
+                  onClick={handleHumanize}
                   disabled={!inputText.trim() || isProcessing}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 disabled:opacity-50 flex items-center text-sm shadow-lg"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-purple-500 text-white font-medium rounded-lg hover:bg-purple-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xs sm:text-sm"
                 >
                   {isProcessing ? (
                     <>
                       <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
-                      Processing...
+                      Humanizing...
                     </>
                   ) : (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Paraphrase Text
+                      <Users className="w-4 h-4 mr-2" />
+                      <span className="hidden sm:inline">Humanize Text</span>
+                      <span className="sm:hidden">Humanize</span>
                     </>
                   )}
                 </button>
@@ -523,245 +536,178 @@ ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
             </div>
           </div>
 
-          {/* Output Panel with Dynamic Synonyms */}
-          <div className="bg-white rounded-2xl shadow-lg border border-blue-100 p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Paraphrased Text</h2>
-              {outputText && (
+          {/* Output Panel */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-2">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900">Humanized Text</h2>
+              {result && (
                 <div className="flex items-center space-x-2">
                   <button
-                    onClick={() => navigator.clipboard.writeText(outputText)}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
-                    title="Copy to clipboard"
+                    onClick={() => handleCopy(result.humanizedText)}
+                    className="p-1 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                    title="Copy"
                   >
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                   <button
                     onClick={downloadResult}
-                    className="p-2 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                    className="p-1 sm:p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                     title="Download"
                   >
-                    <Download className="w-4 h-4" />
+                    <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                   </button>
                 </div>
               )}
             </div>
 
-            {outputText ? (
-              <div className="space-y-4">
-                <div
-                  ref={outputRef}
-                  className="p-4 bg-gray-50 rounded-xl border border-gray-200 min-h-72 sm:min-h-96 max-h-96 overflow-y-auto cursor-pointer"
-                  onClick={() => {
-                    setSelectedWord(null)
-                    setSynonyms([])
-                  }}
-                >
-                  <div className="relative">
-                    <p className="text-gray-900 leading-relaxed text-sm sm:text-base">
-                      {outputText.split(" ").map((word, index) => {
-                        const cleanWord = word.replace(/[^\w]/g, "").toLowerCase()
-                        return (
-                          <span
-                            key={index}
-                            onClick={(e) => handleWordClick(word, e)}
-                            className={`hover:bg-blue-100 rounded px-1 transition-colors duration-200 cursor-pointer ${
-                              selectedWord === cleanWord ? 'bg-blue-200 ring-2 ring-blue-300' : ''
-                            }`}
-                            title="Click for AI-powered synonyms"
-                          >
-                            {word}{" "}
-                          </span>
-                        )
-                      })}
-                    </p>
-                    
-                    {/* Dynamic Synonyms Popup */}
-                    {selectedWord && (
-                      <div className="absolute z-10 bg-white border border-gray-200 rounded-xl shadow-xl p-4 mt-2 left-0 right-0">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-semibold text-gray-800 flex items-center">
-                            <Sparkles className="w-4 h-4 mr-2 text-blue-500" />
-                            AI Synonyms for "{selectedWord}"
-                          </h4>
-                          <button
-                            onClick={() => {
-                              setSelectedWord(null)
-                              setSynonyms([])
-                            }}
-                            className="text-gray-400 hover:text-gray-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                        
-                        {isLoadingSynonyms ? (
-                          <div className="flex items-center justify-center py-4">
-                            <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full mr-2"></div>
-                            <span className="text-sm text-gray-600">Generating AI synonyms...</span>
-                          </div>
-                        ) : synonyms.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {synonyms.map((synonym, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => replaceWord(synonym)}
-                                className="px-3 py-2 bg-gradient-to-r from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-lg text-sm font-medium text-blue-700 transition-all duration-200 border border-blue-200 hover:border-blue-300 hover:shadow-sm"
-                              >
-                                {synonym}
-                              </button>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-4 text-gray-500 text-sm">
-                            No synonyms found. Try another word.
-                          </div>
-                        )}
-                        
-                        <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-500 text-center">
-                            ✨ Powered by OpenAI • Context-aware synonyms
-                          </p>
-                        </div>
-                      </div>
-                    )}
+            <div className="h-60 sm:h-80 p-3 sm:p-4 border border-gray-300 rounded-lg bg-gray-50 overflow-y-auto">
+              {result ? (
+                <div className="text-gray-900 leading-relaxed text-sm sm:text-base whitespace-pre-wrap">
+                  {result.humanizedText}
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-gray-400">
+                  <div className="text-center">
+                    <Users className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-4" />
+                    <p className="text-sm sm:text-base">Humanized text will appear here</p>
+                    <p className="text-xs text-gray-500 mt-2">Process your AI text to see the humanized version</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {result && (
+              <>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-base sm:text-lg font-bold text-green-600">
+                      {(result.humanScore || 0).toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-green-600">Human Score</div>
+                  </div>
+                  <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="text-base sm:text-lg font-bold text-blue-600">
+                      {(result.readabilityScore || 0).toFixed(0)}%
+                    </div>
+                    <div className="text-xs text-blue-600">Readability</div>
                   </div>
                 </div>
 
-                {/* Statistics */}
-                {apiResult && (
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-200">
-                      <div className="text-lg font-bold text-blue-600">
-                        {apiResult.wordCountOriginal}
-                      </div>
-                      <div className="text-xs text-blue-600 font-medium">Original</div>
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
+                  <div className="text-center p-2 sm:p-3 bg-red-50 rounded-lg border border-red-200">
+                    <div className="text-base sm:text-lg font-bold text-red-600">
+                      {(result.aiDetectionBefore || 0).toFixed(0)}%
                     </div>
-                    <div className="text-center p-3 bg-green-50 rounded-xl border border-green-200">
-                      <div className="text-lg font-bold text-green-600">
-                        {apiResult.wordCountParaphrased}
-                      </div>
-                      <div className="text-xs text-green-600 font-medium">Paraphrased</div>
+                    <div className="text-xs text-red-600">AI Detection Before</div>
+                  </div>
+                  <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="text-base sm:text-lg font-bold text-green-600">
+                      {(result.aiDetectionAfter || 0).toFixed(0)}%
                     </div>
-                    <div className="text-center p-3 bg-purple-50 rounded-xl border border-purple-200">
-                      <div className="text-lg font-bold text-purple-600">
-                        {apiResult.changes}
-                      </div>
-                      <div className="text-xs text-purple-600 font-medium">Changes</div>
-                    </div>
-                    <div className="text-center p-3 bg-orange-50 rounded-xl border border-orange-200">
-                      <div className="text-lg font-bold text-orange-600">
-                        {apiResult.similarityScore}%
-                      </div>
-                      <div className="text-xs text-orange-600 font-medium">Similarity</div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="text-sm text-gray-600 space-y-2 p-3 bg-gray-50 rounded-xl">
-                  <div className="flex justify-between">
-                    <span>Mode:</span>
-                    <span className="font-medium">{allModes.find((m) => m.id === mode)?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Language:</span>
-                    <span className="font-medium">{languages.find((l) => l.id === language)?.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Creativity Level:</span>
-                    <span className="font-medium">{synonymLevel}%</span>
-                  </div>
-                  <div className="text-xs text-blue-600 text-center mt-2">
-                    ✨ Click any word for AI-powered context-aware synonyms
+                    <div className="text-xs text-green-600">AI Detection After</div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center text-gray-400 py-12">
-                <RefreshCw className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium text-gray-500">Awaiting Your Text</p>
-                <p className="text-sm mt-2">Your paraphrased content will appear here</p>
+              </>
+            )}
+
+            {result?.aiDetectionResults && (
+              <div className="mt-4 p-3 sm:p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                <h4 className="font-medium text-yellow-900 mb-3 text-sm sm:text-base">AI Detection Results</h4>
+                <div className="space-y-2">
+                  {result.aiDetectionResults.map((detection, index) => (
+                    <div key={index} className="flex items-center justify-between text-xs sm:text-sm">
+                      <span className="text-yellow-800">{detection.detector}</span>
+                      <div className="flex items-center space-x-2">
+                        <span
+                          className={`px-2 py-1 rounded-full text-xs ${
+                            (detection.confidence || 0) < 30
+                              ? "bg-green-100 text-green-700"
+                              : (detection.confidence || 0) < 70
+                                ? "bg-yellow-100 text-yellow-700"
+                                : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {(detection.confidence || 0).toFixed(0)}% AI
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Upgrade Modal */}
-        {showUpgradeModal && (
+        {/* Premium Modal */}
+        {showPremiumModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-6 sm:p-8">
-              <div className="text-center">
-                <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Crown className="w-8 h-8 text-white" />
+            <div className="bg-white rounded-2xl max-w-sm sm:max-w-md w-full p-4 sm:p-6">
+              <div className="text-center mb-4 sm:mb-6">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Lock className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">Premium Feature</h3>
-                <p className="text-gray-600 mb-6">
-                  Unlock all 9 paraphrasing modes with Premium access. Get advanced features for professional writing.
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">Upgrade to Premium</h3>
+                <p className="text-sm sm:text-base text-gray-600">
+                  Unlock unlimited humanization and advanced features
                 </p>
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <span>All 9 paraphrasing modes</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <span>Advanced AI models</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm">
-                    <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 text-xs">✓</span>
-                    </div>
-                    <span>Priority processing</span>
-                  </div>
+              </div>
+
+              <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
+                <div className="flex items-center space-x-3">
+                  <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Unlimited word processing</span>
                 </div>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
-                  <button
-                    onClick={() => setShowUpgradeModal(false)}
-                    className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Maybe Later
-                  </button>
-                  <button
-                    onClick={() => {
-                      setIsPremium(true)
-                      setShowUpgradeModal(false)
-                    }}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all font-medium shadow-lg"
-                  >
-                    Upgrade Now
-                  </button>
+                <div className="flex items-center space-x-3">
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">5 premium humanization modes</span>
                 </div>
+                <div className="flex items-center space-x-3">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Advanced AI detection bypass</span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm">Bulk document processing</span>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button
+                  onClick={() => setShowPremiumModal(false)}
+                  className="flex-1 px-4 py-2 sm:py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
+                >
+                  Maybe Later
+                </button>
+                <button className="flex-1 px-4 py-2 sm:py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:opacity-90 transition-opacity text-sm sm:text-base">
+                  Upgrade Now
+                </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* Features Section */}
-        <div className="mt-8 sm:mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-          <div className="text-center p-6 bg-white rounded-2xl shadow-lg border border-blue-100">
-            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <RefreshCw className="w-6 h-6 text-white" />
+        {/* Features Grid */}
+        <div className="mt-8 sm:mt-12 grid sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Users className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">Dynamic Synonyms</h3>
-            <p className="text-sm text-gray-600">AI-powered context-aware synonyms for every word</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Human-Like Writing</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Transform AI text into natural, engaging content</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-2xl shadow-lg border border-purple-100">
-            <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-6 h-6 text-white" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">AI-Powered</h3>
-            <p className="text-sm text-gray-600">Real-time synonym generation using OpenAI</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Bypass AI Detection</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Undetectable by major AI detection tools</p>
           </div>
-          <div className="text-center p-6 bg-white rounded-2xl shadow-lg border border-green-100">
-            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <Globe className="w-6 h-6 text-white" />
+          <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200 sm:col-span-2 md:col-span-1">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+              <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">Context-Aware</h3>
-            <p className="text-sm text-gray-600">Synonyms that understand your text's meaning</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Multi-Language Support</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Humanize content in 25+ languages</p>
           </div>
         </div>
       </div>
@@ -769,4 +715,4 @@ ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`
   )
 }
 
-export default ParaphraserPage
+export default AIHumanizerPage
