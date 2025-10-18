@@ -8,7 +8,7 @@ export default defineConfig({
     port: 5173, // Use Vite's default port
     proxy: {
       '/api': {
-        target: 'https://goeditore.com',
+        target: 'http://localhost:3000/',
         changeOrigin: true,
         secure: false,
       }
