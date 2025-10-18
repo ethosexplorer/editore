@@ -15,7 +15,7 @@ const Header: React.FC = () => {
 
   const menuItems = [
     { name: "Paraphraser", path: "/paraphraser" },
-    { name: "Grammar & Style", path: "/grammar-style" },
+    { name: "Grammar & Style", path: "/grammar-checker" },
     { name: "Summarizer", path: "/summarizer" },
     { name: "Originality Check", path: "/originality-check" },
     {
