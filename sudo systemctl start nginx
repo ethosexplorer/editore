@@ -1,0 +1,22 @@
+[0;1;32m●[0m nginx.service - A high performance web server and a reverse proxy server
+     Loaded: loaded (]8;;file://srv1061881/usr/lib/systemd/system/nginx.service\/usr/lib/systemd/system/nginx.service]8;;\; [0;1;32menabled[0m; preset: [0;1;32menabled[0m)
+     Active: [0;1;32mactive (running)[0m since Thu 2025-10-16 10:26:12 UTC; 42min ago
+ Invocation: dbcd13eaacaf452ca104c1337e0ee37b
+       Docs: ]8;;man:nginx(8)\man:nginx(8)]8;;\
+    Process: 12088 ExecReload=/usr/sbin/nginx -g daemon on; master_process on; -s reload (code=exited, status=0/SUCCESS)
+   Main PID: 5137 (nginx)
+      Tasks: 5[0;38;5;245m (limit: 19139)[0m
+     Memory: 4.6M (peak: 10.8M)
+        CPU: 69ms
+     CGroup: /system.slice/nginx.service
+             ├─[0;38;5;245m 5137 "nginx: master process /usr/sbin/nginx -g daemon on; master_process on;"[0m
+             ├─[0;38;5;245m12090 "nginx: worker process"[0m
+             ├─[0;38;5;245m12091 "nginx: worker process"[0m
+             ├─[0;38;5;245m12092 "nginx: worker process"[0m
+             └─[0;38;5;245m12093 "nginx: worker process"[0m
+
+Oct 16 10:26:12 srv1061881 systemd[1]: Starting nginx.service - A high performance web server and a reverse proxy server...
+Oct 16 10:26:12 srv1061881 systemd[1]: Started nginx.service - A high performance web server and a reverse proxy server.
+Oct 16 11:04:43 srv1061881 systemd[1]: Reloading nginx.service - A high performance web server and a reverse proxy server...
+Oct 16 11:04:43 srv1061881 nginx[12088]: 2025/10/16 11:04:43 [notice] 12088#12088: signal process started
+Oct 16 11:04:43 srv1061881 systemd[1]: Reloaded nginx.service - A high performance web server and a reverse proxy server.
