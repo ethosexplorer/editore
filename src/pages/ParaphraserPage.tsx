@@ -12,22 +12,22 @@ interface ChangedWord {
 }
 
 interface ApiResult {
-  original: string;
-  paraphrased: string;
-  changedWords: ChangedWord[];
-  originalityScore: number;
-  readabilityScore: number;
-  processingTime: number;
-  modeUsed: string;
-  language: string;
-  wordCount: number;
-  charCount: number;
+  original?: string;
+  paraphrased?: string;
+  changedWords?: ChangedWord[];
+  originalityScore?: number;
+  readabilityScore?: number;
+  processingTime?: number;
+  modeUsed?: string;
+  language?: string;
+  wordCount?: number;
+  charCount?: number;
 }
 
 interface SynonymResponse {
-  synonyms: string[];
-  originalWord: string;
-  context: string;
+  synonyms?: string[];
+  originalWord?: string;
+  context?: string;
 }
 
 interface Language {
@@ -57,7 +57,10 @@ const ParaphraserPage: React.FC = () => {
   const [files, setFiles] = useState<File[]>([])
   const [wordsUsed, setWordsUsed] = useState(0)
   const [wordsLimit, setWordsLimit] = useState(1000)
+  const [showToast, setShowToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({ show: false, message: "", type: "success" })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const outputRef = useRef<HTMLDivElement>(null)
+  const synonymBoxRef = useRef<HTMLDivElement>(null)
 
   const allModes = [
     { id: "standard", name: "Standard", premium: false, icon: "🔄", description: "Balanced paraphrasing with meaning preservation" },
@@ -112,16 +115,25 @@ const ParaphraserPage: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // Show toast notification
+  const showToastMessage = (message: string, type: "success" | "error" = "success") => {
+    setShowToast({ show: true, message, type })
+    setTimeout(() => setShowToast({ show: false, message: "", type: "success" }), 3000)
+  }
+
   const getApiBaseUrl = () => {
     return ''
   }
 
   const handleParaphrase = async () => {
     console.log('Starting paraphrasing...')
-    if (!inputText.trim()) return
+    if (!inputText.trim()) {
+      showToastMessage("Please enter some text to paraphrase", "error")
+      return
+    }
 
     if (wordCount > WORD_LIMIT) {
-      alert(`Text exceeds ${WORD_LIMIT} word limit. Current: ${wordCount} words`)
+      showToastMessage(`Text exceeds ${WORD_LIMIT} word limit. Current: ${wordCount} words`, "error")
       return
     }
 
@@ -157,77 +169,39 @@ const ParaphraserPage: React.FC = () => {
         throw new Error(`API error: ${response.status} - ${response.statusText}`)
       }
 
-      const newResult = await response.json()
+      const result = await response.json()
+      console.log('API Response:', result)
 
-      // Validate and ensure all required fields exist
+      // Handle flexible API response - don't validate strictly
+      const paraphrasedText = result.paraphrased || result.result || result.text || result.output || inputText
+      
       const validatedResult: ApiResult = {
-        original: newResult.original || inputText,
-        paraphrased: newResult.paraphrased || newResult.original || 'No result returned from API',
-        changedWords: newResult.changedWords || [],
-        originalityScore: newResult.originalityScore || 0,
-        readabilityScore: newResult.readabilityScore || 0,
-        processingTime: newResult.processingTime || 0,
-        modeUsed: newResult.modeUsed || mode,
-        language: newResult.language || language,
-        wordCount: newResult.wordCount || wordCount,
-        charCount: newResult.charCount || charCount,
+        original: result.original || inputText,
+        paraphrased: paraphrasedText,
+        changedWords: result.changedWords || result.changes || [],
+        originalityScore: result.originalityScore || result.score || 0,
+        readabilityScore: result.readabilityScore || result.readability || 0,
+        processingTime: result.processingTime || result.time || 0,
+        modeUsed: result.modeUsed || mode,
+        language: result.language || language,
+        wordCount: result.wordCount || wordCount,
+        charCount: result.charCount || charCount,
       }
 
-      setOutputText(validatedResult.paraphrased)
+      setOutputText(validatedResult.paraphrased || "")
       setApiResult(validatedResult)
-      setChangedWords(validatedResult.changedWords)
+      setChangedWords(validatedResult.changedWords || [])
       setWordsUsed(prev => prev + inputText.split(" ").filter(w => w).length)
+
+      showToastMessage("Text paraphrased successfully!")
 
     } catch (error) {
       console.error("Paraphrasing error:", error)
-      // Fallback to mock data if API fails
-      handleMockParaphrase()
+      showToastMessage("Failed to paraphrase text. Please try again.", "error")
+      // Don't fallback to mock data - let the user retry
     } finally {
       setIsProcessing(false)
     }
-  }
-
-  const handleMockParaphrase = async () => {
-    if (!inputText.trim()) return
-    setIsProcessing(true)
-
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500))
-
-    const mockResult: ApiResult = {
-      original: inputText,
-      paraphrased: `Paraphrased version: ${inputText}\n\nThis text has been rephrased while maintaining the original meaning. The content has been adjusted to improve clarity, vary sentence structure, and enhance overall readability while preserving the core message and intent.`,
-      changedWords: [
-        {
-          original: "utilize",
-          replacement: "use",
-          position: 0
-        },
-        {
-          original: "commence",
-          replacement: "start", 
-          position: 1
-        },
-        {
-          original: "terminate",
-          replacement: "end",
-          position: 2
-        }
-      ],
-      originalityScore: 85 + Math.random() * 15,
-      readabilityScore: 75 + Math.random() * 20,
-      processingTime: Math.floor(Math.random() * 2) + 1,
-      modeUsed: mode,
-      language: language,
-      wordCount: wordCount,
-      charCount: charCount,
-    }
-
-    setOutputText(mockResult.paraphrased)
-    setApiResult(mockResult)
-    setChangedWords(mockResult.changedWords)
-    setWordsUsed(prev => prev + inputText.split(" ").filter(w => w).length)
-    setIsProcessing(false)
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -290,7 +264,7 @@ const ParaphraserPage: React.FC = () => {
 
     } catch (error) {
       console.error("Synonyms error:", error)
-      setSynonyms(["alternative", "substitute", "replacement", "equivalent"])
+      setSynonyms([])
     } finally {
       setLoadingSynonyms(false)
     }
@@ -315,12 +289,14 @@ const ParaphraserPage: React.FC = () => {
         const updatedApiResult = {
           ...apiResult,
           paraphrased: newText,
-          changedWords: [...apiResult.changedWords, manualChange]
+          changedWords: [...(apiResult.changedWords || []), manualChange]
         };
         
         setApiResult(updatedApiResult);
-        setChangedWords(updatedApiResult.changedWords);
+        setChangedWords(updatedApiResult.changedWords || []);
       }
+
+      showToastMessage(`Replaced "${selectedWord}" with "${synonym}"`)
     }
   }
 
@@ -372,8 +348,9 @@ const ParaphraserPage: React.FC = () => {
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(outputText)
+      showToastMessage("Copied to clipboard!")
     } catch (err) {
-      console.error("Failed to copy text:", err)
+      showToastMessage("Failed to copy text", "error")
     }
   }
 
@@ -410,10 +387,9 @@ ${new Date().toLocaleDateString()}`
     a.download = "paraphrasing-report.txt"
     a.click()
     URL.revokeObjectURL(url)
+    showToastMessage("Report downloaded!")
   }
 
-  const outputRef = useRef<HTMLDivElement>(null)
-  const synonymBoxRef = useRef<HTMLDivElement>(null)
   const sentences = getSentences(outputText)
   const isOverLimit = wordCount > WORD_LIMIT
 
@@ -733,7 +709,7 @@ ${new Date().toLocaleDateString()}`
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="text-base sm:text-lg font-bold text-purple-600">
-                      {apiResult.changedWords.length}
+                      {(apiResult.changedWords || []).length}
                     </div>
                     <div className="text-xs text-purple-600">Words Changed</div>
                   </div>
@@ -855,6 +831,7 @@ ${new Date().toLocaleDateString()}`
                   onClick={() => {
                     setIsPremium(true)
                     setShowUpgradeModal(false)
+                    showToastMessage("Welcome to Premium!")
                   }}
                   className="flex-1 px-4 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-lg hover:opacity-90 transition-opacity text-sm sm:text-base"
                 >
@@ -862,6 +839,22 @@ ${new Date().toLocaleDateString()}`
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {showToast.show && (
+          <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-2 transition-all duration-300 ${
+            showToast.type === "success" 
+              ? "bg-green-500 text-white" 
+              : "bg-red-500 text-white"
+          }`}>
+            {showToast.type === "success" ? (
+              <CheckCircle className="w-5 h-5" />
+            ) : (
+              <AlertCircle className="w-5 h-5" />
+            )}
+            <span className="font-medium">{showToast.message}</span>
           </div>
         )}
 
