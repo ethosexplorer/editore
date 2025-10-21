@@ -138,7 +138,7 @@ const GrammarCheckerPage: React.FC = () => {
     const startTime = Date.now()
 
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/grammar`
+      const apiUrl = `${getApiBaseUrl()}/api/grammar-check`
       
       const response = await fetch(apiUrl, {
         method: 'POST',
