@@ -60,7 +60,7 @@ const SummarizerPage: React.FC = () => {
 
   const getApiBaseUrl = () => {
     // Use the same base URL logic as your other components
-    return typeof window !== 'undefined' ? window.location.origin : ''
+    return ''
   }
 
   const handleSummarize = async () => {

@@ -128,7 +128,7 @@ const GrammarCheckerPage: React.FC = () => {
   }, [text, realTimeChecking])
 
   const getApiBaseUrl = () => {
-    return typeof window !== 'undefined' ? window.location.origin : ''
+    return ''
   }
 
   const handleCheck = async () => {
