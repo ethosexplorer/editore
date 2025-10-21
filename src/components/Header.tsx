@@ -21,7 +21,7 @@ const Header: React.FC = () => {
     { name: "Paraphraser", path: "/paraphraser" },
     { name: "Grammar & Style", path: "/grammar-checker" },
     { name: "Summarizer", path: "/summarizer" },
-    { name: "Originality Check", path: "/originality-check" },
+    { name: "Originality Check", path: "/plagiarism-checker" },
     {
       name: "AI Content Tools",
       subItems: [
