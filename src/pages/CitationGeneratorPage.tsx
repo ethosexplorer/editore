@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import {
   Quote,
   Copy,
@@ -18,6 +18,7 @@ import {
   Upload,
   History,
   CheckCircle,
+  AlertCircle,
 } from "lucide-react"
 
 interface Citation {
@@ -31,6 +32,45 @@ interface Citation {
   verified: boolean
 }
 
+interface CitationResponse {
+  fullCitation: string
+  inTextCitation: string
+  format: string
+  sourceType: string
+  verified: boolean
+  processingTime?: number
+}
+
+interface CitationStyle {
+  id: string
+  name: string
+  description: string
+  primary: boolean
+}
+
+interface SourceType {
+  id: string
+  name: string
+  icon: string
+  fields: FormField[]
+}
+
+interface FormField {
+  key: string
+  label: string
+  placeholder: string
+  type: string
+  required: boolean
+  value?: string
+}
+
+interface InputMethod {
+  id: string
+  name: string
+  icon: string
+  placeholder: string
+}
+
 const CitationGeneratorPage: React.FC = () => {
   const [inputMethod, setInputMethod] = useState("url")
   const [inputValue, setInputValue] = useState("")
@@ -41,181 +81,323 @@ const CitationGeneratorPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
   const [files, setFiles] = useState<File[]>([])
+  const [error, setError] = useState<string>("")
+  const [inputMethods, setInputMethods] = useState<InputMethod[]>([])
+  const [sourceTypes, setSourceTypes] = useState<SourceType[]>([])
+  const [citationStyles, setCitationStyles] = useState<CitationStyle[]>([])
+  const [isLoadingConfig, setIsLoadingConfig] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const inputMethods = [
-    { id: "url", name: "URL", icon: Link, placeholder: "https://example.com/article" },
-    { id: "doi", name: "DOI", icon: Hash, placeholder: "10.1000/182" },
-    { id: "isbn", name: "ISBN", icon: BookOpen, placeholder: "978-0-123456-78-9" },
-    { id: "manual", name: "Manual Entry", icon: FileText, placeholder: "Enter details manually" },
-  ]
+  // Load configuration dynamically
+  useEffect(() => {
+    loadConfiguration()
+  }, [])
 
-  const sourceTypes = [
-    { id: "website", name: "Website", icon: Globe, count: 0 },
-    { id: "book", name: "Book", icon: BookOpen, count: 0 },
-    { id: "journal", name: "Journal Article", icon: FileText, count: 0 },
-    { id: "image", name: "Image", icon: ImageIcon, count: 0 },
-    { id: "video", name: "Video", icon: Video, count: 0 },
-    { id: "legal", name: "Legal Document", icon: FileText, count: 0 },
-  ]
+  const loadConfiguration = async () => {
+    try {
+      setIsLoadingConfig(true)
+      
+      // In a real implementation, you might fetch this from an API
+      // For now, we'll simulate dynamic configuration
+      const config = await generateDynamicConfiguration()
+      
+      setInputMethods(config.inputMethods)
+      setSourceTypes(config.sourceTypes)
+      setCitationStyles(config.citationStyles)
+      
+    } catch (error) {
+      console.error('Failed to load configuration:', error)
+      setError('Failed to load application configuration')
+    } finally {
+      setIsLoadingConfig(false)
+    }
+  }
 
-  const citationStyles = [
-    { id: "apa", name: "APA 7th Edition", description: "American Psychological Association", primary: true },
-    { id: "mla", name: "MLA 9th Edition", description: "Modern Language Association", primary: false },
-    { id: "chicago", name: "Chicago 17th Edition", description: "Chicago Manual of Style", primary: false },
-    { id: "harvard", name: "Harvard Style", description: "Author-Date System", primary: false },
-  ]
+  const generateDynamicConfiguration = async (): Promise<{
+    inputMethods: InputMethod[]
+    sourceTypes: SourceType[]
+    citationStyles: CitationStyle[]
+  }> => {
+    // Simulate API call or dynamic generation
+    return {
+      inputMethods: [
+        { id: "url", name: "URL", icon: "Link", placeholder: "https://example.com/article" },
+        { id: "doi", name: "DOI", icon: "Hash", placeholder: "10.1000/182" },
+        { id: "isbn", name: "ISBN", icon: "BookOpen", placeholder: "978-0-123456-78-9" },
+        { id: "manual", name: "Manual Entry", icon: "FileText", placeholder: "Enter details manually" },
+      ],
+      sourceTypes: await generateSourceTypes(),
+      citationStyles: await generateCitationStyles(),
+    }
+  }
+
+  const generateSourceTypes = async (): Promise<SourceType[]> => {
+    // Dynamically generate source types with their field configurations
+    return [
+      {
+        id: "website",
+        name: "Website",
+        icon: "Globe",
+        fields: [
+          { key: "author", label: "Author", placeholder: "Last, F. M.", type: "text", required: true },
+          { key: "title", label: "Page Title", placeholder: "Title of the webpage", type: "text", required: true },
+          { key: "website", label: "Website Name", placeholder: "Name of the website", type: "text", required: false },
+          { key: "url", label: "URL", placeholder: "https://example.com", type: "url", required: false },
+          { key: "date", label: "Publication Date", placeholder: "", type: "date", required: false },
+          { key: "accessDate", label: "Access Date", placeholder: "", type: "date", required: false, value: new Date().toISOString().split("T")[0] },
+        ]
+      },
+      {
+        id: "book",
+        name: "Book",
+        icon: "BookOpen",
+        fields: [
+          { key: "author", label: "Author", placeholder: "Last, F. M.", type: "text", required: true },
+          { key: "title", label: "Book Title", placeholder: "Title of the book", type: "text", required: true },
+          { key: "publisher", label: "Publisher", placeholder: "Publisher name", type: "text", required: false },
+          { key: "year", label: "Publication Year", placeholder: "YYYY", type: "text", required: false },
+          { key: "city", label: "Publication City", placeholder: "City name", type: "text", required: false },
+          { key: "isbn", label: "ISBN (Optional)", placeholder: "978-0-123456-78-9", type: "text", required: false },
+        ]
+      },
+      {
+        id: "journal",
+        name: "Journal Article",
+        icon: "FileText",
+        fields: [
+          { key: "author", label: "Author", placeholder: "Last, F. M.", type: "text", required: true },
+          { key: "title", label: "Article Title", placeholder: "Title of the article", type: "text", required: true },
+          { key: "journal", label: "Journal Name", placeholder: "Name of the journal", type: "text", required: false },
+          { key: "volume", label: "Volume", placeholder: "Volume number", type: "text", required: false },
+          { key: "issue", label: "Issue", placeholder: "Issue number", type: "text", required: false },
+          { key: "pages", label: "Pages", placeholder: "123-145", type: "text", required: false },
+          { key: "year", label: "Publication Year", placeholder: "YYYY", type: "text", required: false },
+          { key: "doi", label: "DOI (Optional)", placeholder: "10.xxxx/xxxx", type: "text", required: false },
+        ]
+      },
+      {
+        id: "image",
+        name: "Image",
+        icon: "ImageIcon",
+        fields: [
+          { key: "author", label: "Creator/Photographer", placeholder: "Last, F. M.", type: "text", required: true },
+          { key: "title", label: "Image Title", placeholder: "Title or description", type: "text", required: true },
+          { key: "medium", label: "Medium", placeholder: "Photograph, Digital image, etc.", type: "text", required: false },
+          { key: "source", label: "Source/Website", placeholder: "Where found", type: "text", required: false },
+          { key: "url", label: "URL", placeholder: "https://example.com", type: "url", required: false },
+          { key: "date", label: "Creation Date", placeholder: "", type: "date", required: false },
+        ]
+      },
+      {
+        id: "video",
+        name: "Video",
+        icon: "Video",
+        fields: [
+          { key: "author", label: "Creator/Channel", placeholder: "Last, F. M. or Channel Name", type: "text", required: true },
+          { key: "title", label: "Video Title", placeholder: "Title of the video", type: "text", required: true },
+          { key: "platform", label: "Platform", placeholder: "YouTube, Vimeo, etc.", type: "text", required: false },
+          { key: "url", label: "URL", placeholder: "https://youtube.com/watch?v=", type: "url", required: false },
+          { key: "date", label: "Publication Date", placeholder: "", type: "date", required: false },
+        ]
+      }
+    ]
+  }
+
+  const generateCitationStyles = async (): Promise<CitationStyle[]> => {
+    // Dynamically generate citation styles
+    return [
+      { id: "apa", name: "APA 7th Edition", description: "American Psychological Association", primary: true },
+      { id: "mla", name: "MLA 9th Edition", description: "Modern Language Association", primary: false },
+      { id: "chicago", name: "Chicago 17th Edition", description: "Chicago Manual of Style", primary: false },
+      { id: "harvard", name: "Harvard Style", description: "Author-Date System", primary: false },
+    ]
+  }
 
   const handleAutoGenerate = async () => {
     if (!inputValue.trim()) return
 
     setIsProcessing(true)
+    setError("")
 
-    // Simulate AI processing
-    setTimeout(() => {
-      let generatedData: any = {}
+    try {
+      // Auto-detect source type based on input method
+      let detectedSourceType = sourceType
+      if (inputMethod === "url") detectedSourceType = "website"
+      else if (inputMethod === "doi") detectedSourceType = "journal"
+      else if (inputMethod === "isbn") detectedSourceType = "book"
 
-      // Mock auto-detection based on input method
-      if (inputMethod === "url") {
-        generatedData = {
-          author: "Smith, J.",
-          title: "The Impact of Technology on Modern Education",
-          website: "Educational Technology Review",
-          url: inputValue,
-          date: "2024-01-15",
-          accessDate: new Date().toISOString().split("T")[0],
-        }
-        setSourceType("website")
-      } else if (inputMethod === "doi") {
-        generatedData = {
-          author: "Johnson, M. & Brown, K.",
-          title: "Advanced Research Methods in Social Sciences",
-          journal: "Journal of Social Research",
-          volume: "45",
-          issue: "3",
-          pages: "123-145",
-          year: "2024",
-          doi: inputValue,
-        }
-        setSourceType("journal")
-      } else if (inputMethod === "isbn") {
-        generatedData = {
-          author: "Wilson, R.",
-          title: "Comprehensive Guide to Academic Writing",
-          publisher: "Academic Press",
-          year: "2024",
-          city: "New York",
-          isbn: inputValue,
-        }
-        setSourceType("book")
+      const response = await fetch('/api/citation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: inputValue,
+          format: citationStyle,
+          sourceType: detectedSourceType
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate citation')
       }
 
-      setFormData(generatedData)
+      const data: CitationResponse = await response.json()
+      
+      // Extract information from the generated citation to pre-fill form
+      const extractedData = extractDataFromCitation(data.fullCitation, detectedSourceType)
+      
+      setFormData({
+        ...extractedData,
+        source: inputValue,
+        ...(detectedSourceType === 'website' && { url: inputValue }),
+        ...(detectedSourceType === 'journal' && { doi: inputValue }),
+        ...(detectedSourceType === 'book' && { isbn: inputValue }),
+      })
+      
+      setSourceType(detectedSourceType)
+
+    } catch (error) {
+      console.error('Citation generation error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate citation')
+    } finally {
       setIsProcessing(false)
-    }, 2500)
+    }
   }
 
-  const generateCitation = () => {
-    if (!formData.author || !formData.title) return
+  const extractDataFromCitation = (citation: string, sourceType: string): any => {
+    // Dynamically extract data from citation string
+    const data: any = {}
+    
+    try {
+      // Extract author (first part before date)
+      const authorMatch = citation.match(/^([^(]+?)(?=\s*\()/)
+      if (authorMatch) data.author = authorMatch[1].trim()
+      
+      // Extract year
+      const yearMatch = citation.match(/\((\d{4})\)/)
+      if (yearMatch) data.year = yearMatch[1]
+      
+      // Extract title (between year and period)
+      const titleMatch = citation.match(/\)\.\s*(.*?)\./)
+      if (titleMatch) data.title = titleMatch[1].trim()
+      
+      // Additional extraction based on source type
+      switch (sourceType) {
+        case 'website':
+          const websiteMatch = citation.match(/\*([^*]+)\*/)
+          if (websiteMatch) data.website = websiteMatch[1]
+          break
+        case 'journal':
+          const journalMatch = citation.match(/\*([^*]+)\*/)
+          if (journalMatch) data.journal = journalMatch[1]
+          break
+        case 'book':
+          const publisherMatch = citation.match(/\.\s*([^.]+)\.$/)
+          if (publisherMatch) data.publisher = publisherMatch[1]
+          break
+      }
+    } catch (error) {
+      console.warn('Failed to extract data from citation:', error)
+    }
+    
+    return data
+  }
 
-    let fullCitation = ""
-    let inTextCitation = ""
-    const currentDate = new Date().toISOString()
-
-    // APA 7th Edition citation generation
-    if (citationStyle === "apa") {
-      const authorLastName = formData.author.split(",")[0].trim()
-      const year = formData.year || formData.date?.split("-")[0] || "n.d."
-
-      if (sourceType === "website") {
-        fullCitation = `${formData.author} (${year}). ${formData.title}. *${formData.website}*. ${formData.url}`
-        inTextCitation = `(${authorLastName}, ${year})`
-      } else if (sourceType === "book") {
-        fullCitation = `${formData.author} (${formData.year}). *${formData.title}*. ${formData.publisher}.`
-        inTextCitation = `(${authorLastName}, ${formData.year})`
-      } else if (sourceType === "journal") {
-        fullCitation = `${formData.author} (${formData.year}). ${formData.title}. *${formData.journal}*, *${formData.volume}*(${formData.issue}), ${formData.pages}. https://doi.org/${formData.doi || "10.xxxx/xxxx"}`
-        inTextCitation = `(${authorLastName}, ${formData.year})`
-      } else if (sourceType === "image") {
-        fullCitation = `${formData.author} (${year}). *${formData.title}* [${formData.medium || "Photograph"}]. ${formData.source || formData.website}. ${formData.url}`
-        inTextCitation = `(${authorLastName}, ${year})`
-      } else if (sourceType === "video") {
-        fullCitation = `${formData.author} (${year}, ${formData.date ? new Date(formData.date).toLocaleDateString("en-US", { month: "long", day: "numeric" }) : "Date"}). *${formData.title}* [Video]. ${formData.platform || "YouTube"}. ${formData.url}`
-        inTextCitation = `(${authorLastName}, ${formData.year})`
+  const generateCitation = async () => {
+    // Dynamically validate required fields
+    const currentSourceType = sourceTypes.find((st: SourceType) => st.id === sourceType)
+    if (currentSourceType) {
+      const requiredFields = currentSourceType.fields.filter((field: FormField) => field.required)
+      const missingFields = requiredFields.filter((field: FormField) => !formData[field.key])
+      
+      if (missingFields.length > 0) {
+        setError(`Please fill in required fields: ${missingFields.map((f: FormField) => f.label).join(', ')}`)
+        return
       }
     }
 
-    const newCitation: Citation = {
-      id: Date.now(),
-      type: sourceType,
-      style: citationStyle,
-      fullCitation,
-      inTextCitation,
-      timestamp: currentDate,
-      source: { ...formData },
-      verified: true,
-    }
+    setIsProcessing(true)
+    setError("")
 
-    setCitations([newCitation, ...citations])
-    setFormData({})
-    setInputValue("")
+    try {
+      // Dynamically build source information based on form data
+      const sourceInfo = buildSourceInformation(sourceType, formData)
+
+      const response = await fetch('/api/citation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: sourceInfo,
+          format: citationStyle,
+          sourceType: sourceType
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate citation')
+      }
+
+      const data: CitationResponse = await response.json()
+
+      const newCitation: Citation = {
+        id: Date.now(),
+        type: sourceType,
+        style: citationStyle,
+        fullCitation: data.fullCitation,
+        inTextCitation: data.inTextCitation,
+        timestamp: new Date().toISOString(),
+        source: { ...formData },
+        verified: data.verified,
+      }
+
+      setCitations([newCitation, ...citations])
+      setFormData({})
+      setInputValue("")
+      setError("")
+
+    } catch (error) {
+      console.error('Citation generation error:', error)
+      setError(error instanceof Error ? error.message : 'Failed to generate citation')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
-  const getFormFields = () => {
-    switch (sourceType) {
-      case "website":
-        return [
-          { key: "author", label: "Author", placeholder: "Last, F. M." },
-          { key: "title", label: "Page Title", placeholder: "Title of the webpage" },
-          { key: "website", label: "Website Name", placeholder: "Name of the website" },
-          { key: "url", label: "URL", placeholder: "https://example.com" },
-          { key: "date", label: "Publication Date", type: "date" },
-          { key: "accessDate", label: "Access Date", type: "date", value: new Date().toISOString().split("T")[0] },
-        ]
-      case "book":
-        return [
-          { key: "author", label: "Author", placeholder: "Last, F. M." },
-          { key: "title", label: "Book Title", placeholder: "Title of the book" },
-          { key: "publisher", label: "Publisher", placeholder: "Publisher name" },
-          { key: "year", label: "Publication Year", placeholder: "YYYY" },
-          { key: "city", label: "Publication City", placeholder: "City name" },
-          { key: "isbn", label: "ISBN (Optional)", placeholder: "978-0-123456-78-9" },
-        ]
-      case "journal":
-        return [
-          { key: "author", label: "Author", placeholder: "Last, F. M." },
-          { key: "title", label: "Article Title", placeholder: "Title of the article" },
-          { key: "journal", label: "Journal Name", placeholder: "Name of the journal" },
-          { key: "volume", label: "Volume", placeholder: "Volume number" },
-          { key: "issue", label: "Issue", placeholder: "Issue number" },
-          { key: "pages", label: "Pages", placeholder: "123-145" },
-          { key: "year", label: "Publication Year", placeholder: "YYYY" },
-          { key: "doi", label: "DOI (Optional)", placeholder: "10.xxxx/xxxx" },
-        ]
-      case "image":
-        return [
-          { key: "author", label: "Creator/Photographer", placeholder: "Last, F. M." },
-          { key: "title", label: "Image Title", placeholder: "Title or description" },
-          { key: "medium", label: "Medium", placeholder: "Photograph, Digital image, etc." },
-          { key: "source", label: "Source/Website", placeholder: "Where found" },
-          { key: "url", label: "URL", placeholder: "https://example.com" },
-          { key: "date", label: "Creation Date", type: "date" },
-        ]
-      case "video":
-        return [
-          { key: "author", label: "Creator/Channel", placeholder: "Last, F. M. or Channel Name" },
-          { key: "title", label: "Video Title", placeholder: "Title of the video" },
-          { key: "platform", label: "Platform", placeholder: "YouTube, Vimeo, etc." },
-          { key: "url", label: "URL", placeholder: "https://youtube.com/watch?v=" },
-          { key: "date", label: "Publication Date", type: "date" },
-        ]
-      default:
-        return []
-    }
+  const buildSourceInformation = (sourceType: string, formData: any): string => {
+    // Dynamically build source information string based on available form data
+    const parts: string[] = []
+    
+    Object.entries(formData).forEach(([key, value]) => {
+      if (value && typeof value === 'string' && value.trim()) {
+        const fieldLabel = getFieldLabel(sourceType, key)
+        parts.push(`${fieldLabel}: ${value}`)
+      }
+    })
+    
+    return parts.join(', ')
+  }
+
+  const getFieldLabel = (sourceType: string, key: string): string => {
+    // Dynamically get field label for display
+    const sourceTypeConfig = sourceTypes.find((st: SourceType) => st.id === sourceType)
+    const field = sourceTypeConfig?.fields.find((f: FormField) => f.key === key)
+    return field?.label || key
+  }
+
+  const getFormFields = (): FormField[] => {
+    // Dynamically get form fields for current source type
+    const currentSourceType = sourceTypes.find(st => st.id === sourceType)
+    return currentSourceType?.fields || []
   }
 
   const handleInputChange = (key: string, value: string) => {
     setFormData({ ...formData, [key]: value })
+    if (error) setError("")
   }
 
   const copyCitation = (citation: string) => {
@@ -224,7 +406,7 @@ const CitationGeneratorPage: React.FC = () => {
 
   const downloadCitations = () => {
     const content = `CITATION BIBLIOGRAPHY
-Generated by QuillBot Citation Generator
+Generated by Citation Generator
 ${new Date().toLocaleDateString()}
 
 ${citations
@@ -242,8 +424,8 @@ ${c.verified ? "✓ AI-Verified Citation" : ""}
   .join("\n\n")}
 
 Total citations: ${citations.length}
-Primary style: APA 7th Edition
-Accuracy: Human-verified templates with AI processing`
+Primary style: ${citationStyles.find((s: CitationStyle) => s.id === citationStyle)?.name || citationStyle}
+Accuracy: AI-powered citation generation`
 
     const blob = new Blob([content], { type: "text/plain" })
     const url = URL.createObjectURL(blob)
@@ -255,27 +437,32 @@ Accuracy: Human-verified templates with AI processing`
   }
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const uploadedFiles = Array.from(event.target.files || [])
+    const uploadedFiles = Array.from(event.target.files || []) as File[]
     if (uploadedFiles.length > 0) {
-      setFiles((prev) => [...prev, ...uploadedFiles])
-      // Simulate bulk import processing
-      setIsProcessing(true)
-      setTimeout(() => {
-        // Mock bulk citations
-        const bulkCitations = uploadedFiles.map((file, index) => ({
-          id: Date.now() + index,
-          type: "document",
-          style: "apa",
-          fullCitation: `Author, A. (2024). *${file.name.replace(/\.[^/.]+$/, "")}*. Imported Document.`,
-          inTextCitation: `(Author, 2024)`,
-          timestamp: new Date().toISOString(),
-          source: { title: file.name, author: "Author, A.", year: "2024" },
-          verified: true,
-        }))
-        setCitations((prev) => [...bulkCitations, ...prev])
-        setIsProcessing(false)
-      }, 2000)
+      setFiles((prev: File[]) => [...prev, ...uploadedFiles])
+      // Dynamic bulk import processing would go here
+      console.log("Files uploaded for bulk processing:", uploadedFiles)
     }
+  }
+
+  const getIconComponent = (iconName: string) => {
+    // Dynamically get icon component
+    const icons: { [key: string]: any } = {
+      Link, Hash, BookOpen, FileText, Globe, ImageIcon, Video,
+      Quote, Copy, Download, Search, Zap, Upload, History, CheckCircle, AlertCircle
+    }
+    return icons[iconName] || FileText
+  }
+
+  if (isLoadingConfig) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading citation generator...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -291,7 +478,7 @@ Accuracy: Human-verified templates with AI processing`
               <div className="min-w-0">
                 <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Citation Generator</h1>
                 <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">
-                  Generate APA 7th edition citations instantly with AI-powered accuracy
+                  Generate accurate citations instantly with AI-powered formatting
                 </p>
               </div>
             </div>
@@ -310,6 +497,21 @@ Accuracy: Human-verified templates with AI processing`
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-red-400" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Input Method Selection */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6 mb-4 sm:mb-6">
           <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">
@@ -317,7 +519,7 @@ Accuracy: Human-verified templates with AI processing`
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4 sm:mb-6">
             {inputMethods.map((method) => {
-              const IconComponent = method.icon
+              const IconComponent = getIconComponent(method.icon)
               return (
                 <button
                   key={method.id}
@@ -395,7 +597,7 @@ Accuracy: Human-verified templates with AI processing`
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Source Type</h3>
               <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-3">
                 {sourceTypes.map((type) => {
-                  const IconComponent = type.icon
+                  const IconComponent = getIconComponent(type.icon)
                   return (
                     <button
                       key={type.id}
@@ -445,7 +647,10 @@ Accuracy: Human-verified templates with AI processing`
               <h3 className="text-base sm:text-lg font-semibold text-gray-900">Source Information</h3>
               {getFormFields().map((field) => (
                 <div key={field.key}>
-                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">{field.label}</label>
+                  <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
+                    {field.label}
+                    {field.required && <span className="text-red-500 ml-1">*</span>}
+                  </label>
                   <input
                     type={field.type || "text"}
                     value={formData[field.key] || field.value || ""}
@@ -459,11 +664,20 @@ Accuracy: Human-verified templates with AI processing`
 
             <button
               onClick={generateCitation}
-              disabled={!formData.author || !formData.title}
+              disabled={!formData.author || !formData.title || isProcessing}
               className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-amber-500 to-yellow-600 text-white font-semibold rounded-lg hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-sm sm:text-base"
             >
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-              Generate Citation
+              {isProcessing ? (
+                <>
+                  <div className="animate-spin w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  Generate Citation
+                </>
+              )}
             </button>
           </div>
 
@@ -490,7 +704,7 @@ Accuracy: Human-verified templates with AI processing`
                 <Quote className="w-12 h-12 sm:w-16 sm:h-16 mb-4" />
                 <p className="text-base sm:text-lg font-medium">No citations yet</p>
                 <p className="text-xs sm:text-sm text-center">
-                  Use the form to generate accurate APA citations instantly
+                  Use the form to generate accurate citations instantly
                 </p>
               </div>
             ) : (
@@ -508,7 +722,7 @@ Accuracy: Human-verified templates with AI processing`
                         {citation.verified && (
                           <CheckCircle
                             className="w-3 h-3 sm:w-4 sm:h-4 text-green-500 flex-shrink-0"
-                            title="AI-Verified"
+                            aria-label="AI-Verified"
                           />
                         )}
                       </div>
@@ -567,15 +781,15 @@ Accuracy: Human-verified templates with AI processing`
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-4">
               <CheckCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">AI-Verified Accuracy</h3>
-            <p className="text-xs sm:text-sm text-gray-600">Human-verified templates ensure APA compliance</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">AI-Powered Accuracy</h3>
+            <p className="text-xs sm:text-sm text-gray-600">Dynamic citation generation with proper formatting</p>
           </div>
           <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
               <Upload className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
             </div>
-            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Bulk Import</h3>
-            <p className="text-xs sm:text-sm text-gray-600">Import multiple citations from files or databases</p>
+            <h3 className="font-semibold text-gray-900 mb-2 text-sm sm:text-base">Multiple Formats</h3>
+            <p className="text-xs sm:text-sm text-gray-600">APA, MLA, Chicago, Harvard citation styles</p>
           </div>
           <div className="text-center p-4 sm:p-6 bg-white rounded-xl shadow-sm border border-gray-200">
             <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-4">
