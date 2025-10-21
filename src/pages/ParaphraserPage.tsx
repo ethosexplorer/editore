@@ -4,24 +4,32 @@ import type React from "react"
 import { useState, useRef, useEffect } from "react"
 import { RefreshCw, Copy, Download, Crown, ChevronUp, ChevronDown, Zap, Settings, FileText, BarChart3, Sparkles, CheckCircle, AlertCircle, Upload, Trash2, Search, Lock, Globe, Shield } from "lucide-react"
 
-// Define types for API response
+// Define types for API response based on your actual response
 interface ChangedWord {
   original: string;
   replacement: string;
-  position: number;
+  type: string;
 }
 
 interface ApiResult {
-  original?: string;
-  paraphrased?: string;
-  changedWords?: ChangedWord[];
-  originalityScore?: number;
-  readabilityScore?: number;
-  processingTime?: number;
-  modeUsed?: string;
-  language?: string;
-  wordCount?: number;
-  charCount?: number;
+  original: string;
+  paraphrased: string;
+  changedWords: ChangedWord[];
+  mode: string;
+  synonymLevel: number;
+  language: string;
+  wordCountOriginal: number;
+  wordCountParaphrased: number;
+  sentenceCountOriginal: number;
+  sentenceCountParaphrased: number;
+  changes: number;
+  changePercentage: number;
+  processingTime: number;
+  readabilityImprovement: number;
+  similarityScore: number;
+  uniquenessScore: number;
+  paraphraseType: string;
+  source: string;
 }
 
 interface SynonymResponse {
@@ -57,7 +65,7 @@ const ParaphraserPage: React.FC = () => {
   const [files, setFiles] = useState<File[]>([])
   const [wordsUsed, setWordsUsed] = useState(0)
   const [wordsLimit, setWordsLimit] = useState(1000)
-  const [showToast, setShowToast] = useState<{ show: boolean; message: string; type: "success" | "error" }>({ show: false, message: "", type: "success" })
+  const [showToast, setShowToast] = useState({ show: false, message: "", type: "success" | "error" })
   const fileInputRef = useRef<HTMLInputElement>(null)
   const outputRef = useRef<HTMLDivElement>(null)
   const synonymBoxRef = useRef<HTMLDivElement>(null)
@@ -172,25 +180,10 @@ const ParaphraserPage: React.FC = () => {
       const result = await response.json()
       console.log('API Response:', result)
 
-      // Handle flexible API response - don't validate strictly
-      const paraphrasedText = result.paraphrased || result.result || result.text || result.output || inputText
-      
-      const validatedResult: ApiResult = {
-        original: result.original || inputText,
-        paraphrased: paraphrasedText,
-        changedWords: result.changedWords || result.changes || [],
-        originalityScore: result.originalityScore || result.score || 0,
-        readabilityScore: result.readabilityScore || result.readability || 0,
-        processingTime: result.processingTime || result.time || 0,
-        modeUsed: result.modeUsed || mode,
-        language: result.language || language,
-        wordCount: result.wordCount || wordCount,
-        charCount: result.charCount || charCount,
-      }
-
-      setOutputText(validatedResult.paraphrased || "")
-      setApiResult(validatedResult)
-      setChangedWords(validatedResult.changedWords || [])
+      // Use the API response directly without strict validation
+      setOutputText(result.paraphrased || result.original || inputText)
+      setApiResult(result)
+      setChangedWords(result.changedWords || [])
       setWordsUsed(prev => prev + inputText.split(" ").filter(w => w).length)
 
       showToastMessage("Text paraphrased successfully!")
@@ -198,7 +191,6 @@ const ParaphraserPage: React.FC = () => {
     } catch (error) {
       console.error("Paraphrasing error:", error)
       showToastMessage("Failed to paraphrase text. Please try again.", "error")
-      // Don't fallback to mock data - let the user retry
     } finally {
       setIsProcessing(false)
     }
@@ -283,7 +275,7 @@ const ParaphraserPage: React.FC = () => {
         const manualChange: ChangedWord = {
           original: selectedWord,
           replacement: synonym,
-          position: -1 // Indicates manual change
+          type: "manual"
         };
         
         const updatedApiResult = {
@@ -367,15 +359,17 @@ Paraphrased Text:
 ${apiResult.paraphrased}
 
 Metrics:
-- Originality Score: ${(apiResult.originalityScore || 0).toFixed(1)}%
-- Readability Score: ${(apiResult.readabilityScore || 0).toFixed(1)}%
-- Words Changed: ${(apiResult.changedWords || []).length}
-- Mode: ${apiResult.modeUsed}
-- Language: ${apiResult.language}
-- Processing Time: ${apiResult.processingTime}s
+- Similarity Score: ${apiResult.similarityScore || 0}%
+- Uniqueness Score: ${apiResult.uniquenessScore || 0}%
+- Words Changed: ${apiResult.changes || 0}
+- Change Percentage: ${apiResult.changePercentage || 0}%
+- Readability Improvement: ${((apiResult.readabilityImprovement || 0) * 100).toFixed(1)}%
+- Mode: ${apiResult.mode || 'standard'}
+- Language: ${apiResult.language || 'en-US'}
+- Processing Time: ${apiResult.processingTime || 0}s
 
 Changes Made:
-${(apiResult.changedWords || []).map((change, index) => `- "${change.original}" → "${change.replacement}"`).join("\n")}
+${(apiResult.changedWords || []).map((change, index) => `- "${change.original}" → "${change.replacement}" (${change.type})`).join("\n")}
 
 Generated by AI Paraphraser
 ${new Date().toLocaleDateString()}`
@@ -694,28 +688,28 @@ ${new Date().toLocaleDateString()}`
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="text-center p-2 sm:p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <div className="text-base sm:text-lg font-bold text-blue-600">
-                      {(apiResult.originalityScore || 0).toFixed(0)}%
+                      {apiResult.similarityScore || 0}%
                     </div>
-                    <div className="text-xs text-blue-600">Originality</div>
+                    <div className="text-xs text-blue-600">Similarity</div>
                   </div>
                   <div className="text-center p-2 sm:p-3 bg-green-50 rounded-lg border border-green-200">
                     <div className="text-base sm:text-lg font-bold text-green-600">
-                      {(apiResult.readabilityScore || 0).toFixed(0)}%
+                      {apiResult.uniquenessScore || 0}%
                     </div>
-                    <div className="text-xs text-green-600">Readability</div>
+                    <div className="text-xs text-green-600">Uniqueness</div>
                   </div>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:gap-3">
                   <div className="text-center p-2 sm:p-3 bg-purple-50 rounded-lg border border-purple-200">
                     <div className="text-base sm:text-lg font-bold text-purple-600">
-                      {(apiResult.changedWords || []).length}
+                      {apiResult.changes || 0}
                     </div>
-                    <div className="text-xs text-purple-600">Words Changed</div>
+                    <div className="text-xs text-purple-600">Changes Made</div>
                   </div>
                   <div className="text-center p-2 sm:p-3 bg-amber-50 rounded-lg border border-amber-200">
                     <div className="text-base sm:text-lg font-bold text-amber-600">
-                      {apiResult.processingTime}s
+                      {apiResult.processingTime || 0}s
                     </div>
                     <div className="text-xs text-amber-600">Processing Time</div>
                   </div>
