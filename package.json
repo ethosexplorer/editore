@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "dev:server": "node server.js",
+    "dev:server": "node working-server.js",
     "dev:full": "concurrently \"npm run dev:server\" \"npm run dev\"",
     "start": "node server.js"
   },
