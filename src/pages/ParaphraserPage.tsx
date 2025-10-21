@@ -5,19 +5,23 @@ import { useState, useRef, useEffect } from "react"
 import { RefreshCw, Copy, Download, Crown, ChevronUp, ChevronDown, Zap, Settings, FileText, BarChart3, Sparkles, CheckCircle, AlertCircle } from "lucide-react"
 
 // Define types for API response
+interface ChangedWord {
+  original: string;
+  replacement: string;
+  position: number;
+}
+
 interface ApiResult {
   original: string;
   paraphrased: string;
-  changedWords: Array<{
-    original: string;
-    replacement: string;
-    position: number;
-  }>;
+  changedWords: ChangedWord[];
   originalityScore: number;
   readabilityScore: number;
   processingTime: number;
   modeUsed: string;
   language: string;
+  wordCount: number;
+  charCount: number;
 }
 
 interface SynonymResponse {
@@ -39,7 +43,7 @@ const ParaphraserPage: React.FC = () => {
   const [isPremium, setIsPremium] = useState(false)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
   const [apiResult, setApiResult] = useState<ApiResult | null>(null)
-  const [changedWords, setChangedWords] = useState<any[]>([])
+  const [changedWords, setChangedWords] = useState<ChangedWord[]>([])
   const [currentSentence, setCurrentSentence] = useState(0)
   const [loadingSynonyms, setLoadingSynonyms] = useState(false)
   const [wordCount, setWordCount] = useState(0)
@@ -101,92 +105,6 @@ const ParaphraserPage: React.FC = () => {
     setTimeout(() => setShowToast({ show: false, message: "", type: "success" }), 3000)
   }
 
-  // Mock paraphrase API function
-  const mockParaphraseAPI = async (text: string, mode: string, synonymLevel: number, language: string): Promise<ApiResult> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
-
-    // Simple paraphrasing logic (in a real app, this would call your actual API)
-    const words = text.split(' ');
-    const changedWords = [];
-    
-    // Determine change intensity based on synonym level
-    const changeIntensity = synonymLevel / 100;
-    const wordsToChange = Math.max(1, Math.floor(words.length * changeIntensity * 0.3));
-
-    // Mock word replacements based on mode
-    const replacements: { [key: string]: string[] } = {
-      standard: ['modified', 'adjusted', 'altered', 'revised'],
-      fluency: ['improved', 'enhanced', 'refined', 'polished'],
-      formal: ['utilize', 'implement', 'facilitate', 'endeavor'],
-      simple: ['use', 'make', 'help', 'try'],
-      creative: ['transform', 'reimagine', 'rework', 'recast'],
-      academic: ['hypothesize', 'postulate', 'corroborate', 'substantiate'],
-      casual: ['gonna', 'wanna', 'cool', 'awesome']
-    };
-
-    const paraphrasedWords = [...words];
-    for (let i = 0; i < wordsToChange; i++) {
-      const randomIndex = Math.floor(Math.random() * words.length);
-      const originalWord = words[randomIndex].replace(/[^\w]/g, '');
-      
-      if (originalWord.length > 3) {
-        const modeReplacements = replacements[mode] || replacements.standard;
-        const replacement = modeReplacements[Math.floor(Math.random() * modeReplacements.length)];
-        
-        paraphrasedWords[randomIndex] = paraphrasedWords[randomIndex].replace(
-          originalWord, 
-          replacement
-        );
-        
-        changedWords.push({
-          original: originalWord,
-          replacement: replacement,
-          position: randomIndex
-        });
-      }
-    }
-
-    const paraphrasedText = paraphrasedWords.join(' ');
-
-    return {
-      original: text,
-      paraphrased: paraphrasedText,
-      changedWords,
-      originalityScore: Math.min(100, Math.floor(70 + Math.random() * 25)),
-      readabilityScore: Math.min(100, Math.floor(65 + Math.random() * 30)),
-      processingTime: 1800 + Math.floor(Math.random() * 1200),
-      modeUsed: mode,
-      language: language
-    };
-  };
-
-  // Mock synonyms API function
-  const mockSynonymsAPI = async (word: string, sentence: string, context: string, language: string): Promise<SynonymResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 500 + Math.random() * 500));
-
-    const synonymLists: { [key: string]: string[] } = {
-      'hello': ['hi', 'greetings', 'salutations', 'howdy', 'welcome'],
-      'good': ['excellent', 'great', 'wonderful', 'superb', 'outstanding'],
-      'bad': ['poor', 'terrible', 'awful', 'subpar', 'inferior'],
-      'big': ['large', 'huge', 'enormous', 'massive', 'gigantic'],
-      'small': ['tiny', 'little', 'miniature', 'compact', 'petite'],
-      'happy': ['joyful', 'pleased', 'delighted', 'content', 'ecstatic'],
-      'sad': ['unhappy', 'depressed', 'melancholy', 'gloomy', 'downcast'],
-      'beautiful': ['gorgeous', 'stunning', 'lovely', 'attractive', 'picturesque'],
-      'ugly': ['unattractive', 'hideous', 'unsightly', 'repulsive', 'grotesque'],
-      'smart': ['intelligent', 'clever', 'bright', 'brilliant', 'knowledgeable']
-    };
-
-    const defaultSynonyms = ['alternative', 'substitute', 'replacement', 'equivalent', 'variation'];
-
-    return {
-      synonyms: synonymLists[word.toLowerCase()] || defaultSynonyms,
-      originalWord: word,
-      context: sentence
-    };
-  };
-
   const handleParaphrase = async () => {
     if (!inputText.trim()) {
       showToastMessage("Please enter some text to paraphrase", "error")
@@ -215,21 +133,27 @@ const ParaphraserPage: React.FC = () => {
     const startTime = Date.now()
 
     try {
-      // In a real application, you would use:
-      // const response = await fetch('/api/paraphrase', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     text: inputText,
-      //     mode: mode,
-      //     synonymLevel: synonymLevel,
-      //     language: language,
-      //   }),
-      // })
-      // const result = await response.json()
+      const response = await fetch('/api/paraphrase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: inputText,
+          mode: mode,
+          synonymLevel: synonymLevel,
+          language: language,
+        }),
+      })
 
-      // Using mock API for demonstration
-      const result = await mockParaphraseAPI(inputText, mode, synonymLevel, language);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`)
+      }
+
+      const result: ApiResult = await response.json()
+      
+      // Validate required fields from API
+      if (!result.paraphrased || !result.changedWords || typeof result.originalityScore !== 'number') {
+        throw new Error("Invalid API response format")
+      }
       
       setOutputText(result.paraphrased)
       setApiResult(result)
@@ -241,9 +165,6 @@ const ParaphraserPage: React.FC = () => {
       setProcessingTime(endTime - startTime)
       
       showToastMessage("Text paraphrased successfully!")
-
-      // Log API result for debugging
-      console.log("API Result:", result);
 
     } catch (error) {
       console.error("Paraphrasing error:", error)
@@ -272,26 +193,28 @@ const ParaphraserPage: React.FC = () => {
     const currentSentenceText = sentences[currentSentence] || outputText
 
     try {
-      // In a real application, you would use:
-      // const response = await fetch('/api/synonyms', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     word: cleanWord,
-      //     sentence: currentSentenceText,
-      //     context: outputText,
-      //     language: language,
-      //   }),
-      // })
-      // const result = await response.json()
+      const response = await fetch('/api/synonyms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          word: cleanWord,
+          sentence: currentSentenceText,
+          context: outputText,
+          language: language,
+        }),
+      })
 
-      // Using mock API for demonstration
-      const result = await mockSynonymsAPI(cleanWord, currentSentenceText, outputText, language);
+      if (!response.ok) {
+        throw new Error(`Synonyms API error: ${response.status}`)
+      }
+
+      const result: SynonymResponse = await response.json()
       setSynonyms(result.synonyms || [])
 
     } catch (error) {
       console.error("Synonyms error:", error)
-      setSynonyms(["alternative", "substitute", "replacement", "equivalent"])
+      showToastMessage("Failed to load synonyms", "error")
+      setSynonyms([])
     } finally {
       setLoadingSynonyms(false)
     }
@@ -307,18 +230,18 @@ const ParaphraserPage: React.FC = () => {
       
       // Update API result with the manual change
       if (apiResult) {
+        const manualChange: ChangedWord = {
+          original: selectedWord,
+          replacement: synonym,
+          position: -1 // Indicates manual change
+        };
+        
         const updatedApiResult = {
           ...apiResult,
           paraphrased: newText,
-          changedWords: [
-            ...apiResult.changedWords,
-            {
-              original: selectedWord,
-              replacement: synonym,
-              position: -1 // Indicates manual change
-            }
-          ]
+          changedWords: [...apiResult.changedWords, manualChange]
         };
+        
         setApiResult(updatedApiResult);
         setChangedWords(updatedApiResult.changedWords);
       }
@@ -340,6 +263,8 @@ const ParaphraserPage: React.FC = () => {
   }
 
   const renderOutputText = () => {
+    if (!outputText) return null;
+
     const sentences = getSentences(outputText)
     const currentSentenceText = sentences[currentSentence] || ""
     
@@ -390,14 +315,6 @@ const ParaphraserPage: React.FC = () => {
     showToastMessage("Text downloaded!")
   }
 
-  // Function to view API result details (for debugging)
-  const viewApiResultDetails = () => {
-    if (apiResult) {
-      console.log("Full API Result:", apiResult);
-      alert(`API Result Details:\nMode: ${apiResult.modeUsed}\nLanguage: ${apiResult.language}\nChanged Words: ${apiResult.changedWords.length}\nOpen console for full details.`);
-    }
-  }
-
   const sentences = getSentences(outputText)
   const isOverLimit = wordCount > WORD_LIMIT
 
@@ -444,53 +361,39 @@ const ParaphraserPage: React.FC = () => {
                 <Crown className="w-4 h-4 mr-2" />
                 <span>{isPremium ? "Premium" : "Upgrade"}</span>
               </button>
-
-              {/* Debug button to view API result */}
-              {apiResult && (
-                <button
-                  onClick={viewApiResultDetails}
-                  className="px-3 py-2 text-xs text-slate-500 hover:text-slate-700 border border-slate-300 rounded-lg"
-                  title="View API Result Details"
-                >
-                  Debug
-                </button>
-              )}
             </div>
           </div>
         </div>
 
-        {/* Stats Bar */}
-        {outputText && (
+        {/* Stats Bar - Only show when we have API results */}
+        {apiResult && (
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">{originalityScore || 0}%</div>
+                <div className="text-2xl font-bold text-blue-600">{apiResult.originalityScore}%</div>
                 <div className="text-xs text-slate-500 mt-1">Originality</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">{readabilityScore || 0}%</div>
+                <div className="text-2xl font-bold text-green-600">{apiResult.readabilityScore}%</div>
                 <div className="text-xs text-slate-500 mt-1">Readability</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-purple-600">{changedWords.length}</div>
+                <div className="text-2xl font-bold text-purple-600">{apiResult.changedWords.length}</div>
                 <div className="text-xs text-slate-500 mt-1">Words Changed</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-amber-600">{processingTime ? `${processingTime}ms` : '-'}</div>
+                <div className="text-2xl font-bold text-amber-600">{processingTime}ms</div>
                 <div className="text-xs text-slate-500 mt-1">Processing Time</div>
               </div>
             </div>
-            {apiResult && (
-              <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-500 text-center">
-                Mode: <span className="font-medium">{apiResult.modeUsed}</span> • 
-                Language: <span className="font-medium">{apiResult.language}</span> • 
-                API Time: <span className="font-medium">{apiResult.processingTime}ms</span>
-              </div>
-            )}
+            <div className="mt-3 pt-3 border-t border-slate-200 text-xs text-slate-500 text-center">
+              Mode: <span className="font-medium">{apiResult.modeUsed}</span> • 
+              Language: <span className="font-medium">{apiResult.language}</span> • 
+              API Time: <span className="font-medium">{apiResult.processingTime}ms</span>
+            </div>
           </div>
         )}
 
-        {/* Rest of the component remains the same */}
         {/* Controls Section */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 mb-6 overflow-hidden">
           {/* Language Selection */}
