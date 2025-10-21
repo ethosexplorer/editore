@@ -62,6 +62,11 @@ const AIDetectorPage: React.FC = () => {
     { id: "ro", name: "Romanian", flag: "🇷🇴" },
   ];
 
+  const getApiBaseUrl = () => {
+    // Use the same base URL logic as your other components
+    return ''
+  }
+
   const handleAnalyze = async () => {
     const wordCount = text.trim().split(/\s+/).filter(w => w).length;
     if (!text.trim()) {
@@ -76,7 +81,9 @@ const AIDetectorPage: React.FC = () => {
     setIsAnalyzing(true);
 
     try {
-      const response = await fetch('/api/detect', {
+      const apiUrl = `${getApiBaseUrl()}/api/ai-detect`;
+      
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
