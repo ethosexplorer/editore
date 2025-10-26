@@ -109,49 +109,7 @@ const MockSuperDoc = ({ initialContent, onSave, onTemplateLoad, options, style, 
 };
 
 const SuperDocEditor = ({ onPaperTemplateClick }: { onPaperTemplateClick?: () => void }) => {
-  const [docContent, setDocContent] = useState(`Editore Tool - AI-Powered Research Paper Assistant
-
-Abstract
-
-This research paper demonstrates the capabilities of AI-powered writing assistance in academic contexts. The study examines how artificial intelligence can enhance research paper quality through automated citation generation, tone optimization, and plagiarism prevention. Our findings suggest that AI-assisted writing tools can significantly improve the efficiency and quality of academic writing while maintaining scholarly standards.
-
-Keywords: artificial intelligence, academic writing, research assistance, citation management
-
-1. Introduction
-
-Academic writing requires precision, clarity, and adherence to strict formatting standards. Traditional writing processes often involve time-consuming tasks such as citation formatting, literature review synthesis, and maintaining consistent academic tone throughout the document. The emergence of AI-powered writing tools presents new opportunities to streamline these processes while enhancing the overall quality of scholarly work.
-
-The Editore Tool represents a comprehensive solution designed specifically for academic researchers and students. By integrating 16 essential features ranging from template generation to plagiarism checking, this tool addresses the most common challenges faced in research paper composition.
-
-2. Literature Review
-
-Recent advances in natural language processing have enabled the development of sophisticated writing assistance tools. These tools can analyze text for academic tone, suggest improvements, and automate various aspects of the writing process (Smith et al., 2023; Johnson & Brown, 2024).
-
-Previous studies have shown that AI-assisted writing can improve clarity and reduce the time required for document preparation (Davis, 2023). However, concerns remain about maintaining academic integrity and ensuring that AI assistance enhances rather than replaces critical thinking skills.
-
-3. Methodology
-
-This study employed a mixed-methods approach to evaluate the effectiveness of AI-powered research writing tools. Participants included graduate students and faculty members from various academic disciplines. Data collection involved surveys, interviews, and analysis of document quality metrics.
-
-4. Results
-
-Preliminary findings indicate significant improvements in writing efficiency and document quality when using AI-assisted tools. Participants reported reduced time spent on formatting and citation management, allowing more focus on content development and analysis.
-
-5. Discussion
-
-The integration of AI tools in academic writing presents both opportunities and challenges. While these tools can significantly enhance productivity, it is essential to maintain academic standards and ensure proper attribution of AI assistance in scholarly work.
-
-6. Conclusion
-
-AI-powered writing tools like the Editore Tool represent a valuable addition to the academic writer's toolkit. When used appropriately, these tools can enhance the quality and efficiency of research paper composition while maintaining scholarly integrity.
-
-References
-
-Davis, M. (2023). The impact of AI on academic writing quality. Journal of Educational Technology, 15(3), 45-62.
-
-Johnson, A., & Brown, R. (2024). Natural language processing in scholarly communication. Academic Computing Review, 28(2), 112-128.
-
-Smith, J., Wilson, K., & Taylor, L. (2023). Automated writing assistance in higher education. Educational Innovation Quarterly, 12(4), 78-95.`);
+  const [docContent, setDocContent] = useState(``);
   const [fileName, setFileName] = useState('research-paper.docx');
   const [templateLoaded, setTemplateLoaded] = useState(false);
   const [selectedText, setSelectedText] = useState('');
