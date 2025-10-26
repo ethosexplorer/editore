@@ -1800,7 +1800,7 @@ function CoWriterPage() {
       <ToneOptimizerModal />
       <ParaphraserModal />
       <CitationsModal />
-      <CitationsFinderModal />
+      {citationsFinderOpen && <CitationsFinderModal />}
     </div>
   );
 }
