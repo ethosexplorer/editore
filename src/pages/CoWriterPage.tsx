@@ -78,19 +78,7 @@ interface GrammarIssue {
     start: number;
     end: number;
   };
-  message?: string; // Some APIs might return message instead of explanation
-}
-
-interface ToneOptimizerState {
-  original: string;
-  optimized: string;
-  open: boolean;
-}
-
-interface ParaphraserState {
-  original: string;
-  paraphrased: string;
-  open: boolean;
+  message?: string;
 }
 
 interface CitationResult {
@@ -173,57 +161,92 @@ interface EditorWrapperRef {
   insertCitation: (citation: CitationResult) => void;
   getSelectedText: () => string;
   clearContent: () => void;
+  getContent: () => string;
+  setContent: (content: string) => void;
 }
 
 interface EditorWrapperProps {
   onPaperTemplateClick: () => void;
   onTextSelect?: (text: string) => void;
+  onContentChange?: (content: string) => void;
 }
 
 const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, ref) => {
   const editorRef = useRef<any>(null);
   
-  // Function to clear editor content
   const clearContent = useCallback(() => {
-    // This would need to be implemented based on your SuperDocEditor API
-    // For now, we'll use a simple approach
     if (editorRef.current) {
-      // If SuperDocEditor has a clear method, call it
-      // Otherwise, we'll need to implement this differently
       console.log('Clear editor content');
     }
   }, []);
 
-  useImperativeHandle(ref, () => ({
-    replaceSelection: (text: string) => {
-      // For now, we'll use a simple approach to insert text
-      // In a real implementation, you would integrate with your editor
-      console.log('Replace selection with:', text);
-    },
-    insertCitation: (citation: CitationResult) => {
-      // Implement citation insertion logic
-      console.log('Insert citation:', citation);
-      const citationText = `[${citation.fullCitation}]`;
-    },
-    getSelectedText: () => {
-      const selectedText = window.getSelection()?.toString().trim() || '';
-      // If we have an onTextSelect callback, call it
-      if (props.onTextSelect && selectedText) {
-        props.onTextSelect(selectedText);
+  const replaceSelection = useCallback((text: string) => {
+    // Enhanced text replacement that works with contenteditable
+    const selection = window.getSelection();
+    if (selection && selection.rangeCount > 0) {
+      const range = selection.getRangeAt(0);
+      range.deleteContents();
+      const textNode = document.createTextNode(text);
+      range.insertNode(textNode);
+      
+      // Move cursor to end of inserted text
+      range.setStartAfter(textNode);
+      range.setEndAfter(textNode);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      
+      // Trigger content change
+      if (props.onContentChange) {
+        props.onContentChange(getContent());
       }
-      return selectedText;
-    },
-    clearContent: clearContent
+    } else {
+      console.log('No text selected. Generated text:', text);
+    }
+  }, [props.onContentChange]);
+
+  const getContent = useCallback(() => {
+    // Get content from editor - this would need to be implemented based on your SuperDocEditor API
+    const editableElement = document.querySelector('[contenteditable="true"]');
+    return editableElement?.innerHTML || '';
+  }, []);
+
+  const setContent = useCallback((content: string) => {
+    // Set content in editor
+    const editableElement = document.querySelector('[contenteditable="true"]');
+    if (editableElement) {
+      editableElement.innerHTML = content;
+    }
+  }, []);
+
+  const insertCitation = useCallback((citation: CitationResult) => {
+    const citationText = `[${citation.fullCitation}]`;
+    replaceSelection(citationText);
+  }, [replaceSelection]);
+
+  const getSelectedText = useCallback(() => {
+    const selectedText = window.getSelection()?.toString().trim() || '';
+    if (props.onTextSelect && selectedText) {
+      props.onTextSelect(selectedText);
+    }
+    return selectedText;
+  }, [props.onTextSelect]);
+
+  useImperativeHandle(ref, () => ({
+    replaceSelection,
+    insertCitation,
+    getSelectedText,
+    clearContent,
+    getContent,
+    setContent
   }));
 
-  // Cast SuperDocEditor to any component type so we can forward a ref safely
   const AnySuperDocEditor = SuperDocEditor as unknown as React.ComponentType<any>;
 
   return (
     <AnySuperDocEditor
       ref={editorRef}
       onPaperTemplateClick={props.onPaperTemplateClick}
-      // Pass any additional props needed to ensure empty content
+      onContentChange={props.onContentChange}
     />
   );
 });
@@ -236,8 +259,6 @@ function CoWriterPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [grammarChecking, setGrammarChecking] = useState(true);
-  const [toneOptimizerOpen, setToneOptimizerOpen] = useState<ToneOptimizerState | null>(null);
-  const [paraphraserOpen, setParaphraserOpen] = useState<ParaphraserState | null>(null);
   const [citationsOpen, setCitationsOpen] = useState(false);
   const [citationsFinderOpen, setCitationsFinderOpen] = useState(false);
   const [citationResults, setCitationResults] = useState<CitationFinderResult | null>(null);
@@ -246,6 +267,7 @@ function CoWriterPage() {
   const [loading, setLoading] = useState(false);
   const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  const [documentContent, setDocumentContent] = useState('');
   
   // New state variables for premium tools
   const [dataAssistantOpen, setDataAssistantOpen] = useState(false);
@@ -261,27 +283,29 @@ function CoWriterPage() {
   // Use our wrapper component ref instead
   const editorWrapperRef = useRef<EditorWrapperRef>(null);
 
-  // Handle text selection - this will be called when getSelectedText is used
+  // Handle text selection
   const handleTextSelect = (text: string) => {
     setSelectedText(text);
   };
 
+  // Handle content changes
+  const handleContentChange = (content: string) => {
+    setDocumentContent(content);
+  };
+
   // Clear editor content on component mount
   React.useEffect(() => {
-    // Clear editor content when component mounts
     if (editorWrapperRef.current) {
       editorWrapperRef.current.clearContent();
     }
   }, []);
 
-  // API base URL function - same as your other components
+  // API base URL function
   const getApiBaseUrl = () => {
-    // For development - adjust based on your environment
     if (process.env.NODE_ENV === 'development') {
       return 'http://localhost:3000';
     }
-    // For production - use your deployed server URL
-    return ''; // Empty string for same-origin requests
+    return '';
   }
 
   const menuTabs = [
@@ -428,7 +452,7 @@ function CoWriterPage() {
     },
   ];
 
-  // API Integration Functions using fetch - UPDATED TO REMOVE ALERTS
+  // Enhanced API Integration Functions with Auto-Replace
   const handleToneOptimizer = async (text: string) => {
     if (!text.trim()) {
       console.log('Please select some text to optimize');
@@ -446,8 +470,8 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           text: text,
-          mode: 'formal', // Using formal mode for academic tone optimization
-          synonymLevel: 30, // Lower synonym level for tone optimization
+          mode: 'formal',
+          synonymLevel: 30,
           language: 'en-US'
         }),
       });
@@ -458,12 +482,10 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      if (result.paraphrased) {
-        setToneOptimizerOpen({
-          original: text,
-          optimized: result.paraphrased,
-          open: true
-        });
+      if (result.paraphrased && editorWrapperRef.current) {
+        // Auto-replace the selected text with optimized version
+        editorWrapperRef.current.replaceSelection(result.paraphrased);
+        console.log('Tone optimization applied successfully');
       }
     } catch (error) {
       console.error('Tone optimization failed:', error);
@@ -501,12 +523,10 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      if (result.paraphrased) {
-        setParaphraserOpen({
-          original: text,
-          paraphrased: result.paraphrased,
-          open: true
-        });
+      if (result.paraphrased && editorWrapperRef.current) {
+        // Auto-replace the selected text with paraphrased version
+        editorWrapperRef.current.replaceSelection(result.paraphrased);
+        console.log('Paraphrasing applied successfully');
       }
     } catch (error) {
       console.error('Paraphrasing failed:', error);
@@ -543,7 +563,6 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      // Ensure issues array has proper structure
       const issues: GrammarIssue[] = Array.isArray(result.issues) 
         ? result.issues.map((issue: any) => ({
             type: issue.type || 'unknown',
@@ -567,6 +586,191 @@ function CoWriterPage() {
     }
   };
 
+  const handleSummarize = async (text: string) => {
+    if (!text.trim()) {
+      console.log('Please select some text to summarize');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/summarize`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          length: 'medium',
+          mode: 'paragraph',
+          language: 'en-US'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.summary && editorWrapperRef.current) {
+        // Auto-replace the selected text with summary
+        editorWrapperRef.current.replaceSelection(result.summary);
+        console.log('Summarization applied successfully');
+      }
+    } catch (error) {
+      console.error('Summarization failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHumanizeText = async (text: string) => {
+    if (!text.trim()) {
+      console.log('Please select some text to humanize');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/humanize`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputText: text,
+          humanizationMode: 'casual',
+          creativityLevel: 75,
+          language: 'en-US'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.humanizedText && editorWrapperRef.current) {
+        // Auto-replace the selected text with humanized version
+        editorWrapperRef.current.replaceSelection(result.humanizedText);
+        console.log('Text humanization applied successfully');
+      }
+    } catch (error) {
+      console.error('Text humanization failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Enhanced Save Functionality
+  const handleSave = async () => {
+    if (!editorWrapperRef.current) {
+      console.log('Editor not ready');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const content = editorWrapperRef.current.getContent();
+      
+      // Create a blob with proper formatting
+      const blob = new Blob([content], { 
+        type: 'text/html;charset=utf-8' 
+      });
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `research-document-${new Date().toISOString().split('T')[0]}.html`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log('Document saved successfully as HTML');
+      
+      // Also save to localStorage as backup
+      localStorage.setItem('research-document-backup', content);
+      
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Enhanced Save with Format Options
+  const handleSaveWithFormat = async (format: 'html' | 'txt' | 'pdf' = 'html') => {
+    if (!editorWrapperRef.current) {
+      console.log('Editor not ready');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const content = editorWrapperRef.current.getContent();
+      
+      let blob: Blob;
+      let filename: string;
+      let mimeType: string;
+
+      switch (format) {
+        case 'txt':
+          // Strip HTML tags for plain text
+          const plainText = content.replace(/<[^>]*>/g, '');
+          blob = new Blob([plainText], { type: 'text/plain;charset=utf-8' });
+          filename = `research-document-${new Date().toISOString().split('T')[0]}.txt`;
+          mimeType = 'text/plain';
+          break;
+        
+        case 'pdf':
+          // For PDF, we would typically use a PDF generation library
+          // This is a simplified version - in production, use libraries like jsPDF
+          blob = new Blob([content], { type: 'application/pdf' });
+          filename = `research-document-${new Date().toISOString().split('T')[0]}.pdf`;
+          mimeType = 'application/pdf';
+          break;
+        
+        case 'html':
+        default:
+          blob = new Blob([content], { type: 'text/html;charset=utf-8' });
+          filename = `research-document-${new Date().toISOString().split('T')[0]}.html`;
+          mimeType = 'text/html';
+          break;
+      }
+      
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      console.log(`Document saved successfully as ${format.toUpperCase()}`);
+      
+    } catch (error) {
+      console.error('Save failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Other API functions remain similar but with auto-replace where applicable
   const handleCitations = async (sourceInfo: string, format: string = 'apa', sourceType: string = 'website') => {
     setLoading(true);
     try {
@@ -630,7 +834,7 @@ function CoWriterPage() {
       const result: CitationFinderResult = await response.json();
       
       setCitationResults(result);
-      setSelectedCitations([]); // Reset selected citations
+      setSelectedCitations([]);
       setCitationsFinderOpen(true);
       setActiveTool('citations-finder');
     } catch (error) {
@@ -668,7 +872,6 @@ function CoWriterPage() {
       const result = await response.json();
       
       setActiveTool('plagiarism');
-      // Log plagiarism results instead of showing alert
       console.log('Plagiarism Check Complete:', {
         overallScore: result.overallScore,
         uniqueContent: result.uniqueContent,
@@ -676,84 +879,6 @@ function CoWriterPage() {
       });
     } catch (error) {
       console.error('Plagiarism check failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleHumanizeText = async (text: string) => {
-    if (!text.trim()) {
-      console.log('Please select some text to humanize');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const apiUrl = `${getApiBaseUrl()}/api/humanize`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          inputText: text,
-          humanizationMode: 'casual',
-          creativityLevel: 75,
-          language: 'en-US'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.humanizedText && editorWrapperRef.current) {
-        editorWrapperRef.current.replaceSelection(result.humanizedText);
-      }
-    } catch (error) {
-      console.error('Text humanization failed:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSummarize = async (text: string) => {
-    if (!text.trim()) {
-      console.log('Please select some text to summarize');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const apiUrl = `${getApiBaseUrl()}/api/summarize`;
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: text,
-          length: 'medium',
-          mode: 'paragraph',
-          language: 'en-US'
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
-      if (result.summary && editorWrapperRef.current) {
-        editorWrapperRef.current.replaceSelection(result.summary);
-      }
-    } catch (error) {
-      console.error('Summarization failed:', error);
     } finally {
       setLoading(false);
     }
@@ -786,7 +911,6 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      // Log AI detection results instead of showing alert
       console.log('AI Detection Results:', {
         aiProbability: result.aiProbability,
         humanProbability: result.humanProbability,
@@ -891,14 +1015,6 @@ function CoWriterPage() {
           potentialImpact: 'high',
           methodology: ['Mixed Methods', 'Case Studies', 'Surveys'],
           keywords: ['AI Ethics', 'Rural Healthcare', 'Diagnostic Algorithms']
-        },
-        {
-          id: '2',
-          topic: 'Machine Learning',
-          description: 'Gap in interpretability of deep learning models for clinical decision support',
-          potentialImpact: 'medium',
-          methodology: ['Experimental Research', 'Model Analysis', 'Clinical Trials'],
-          keywords: ['Interpretable AI', 'Clinical Decision Support', 'Model Transparency']
         }
       ];
       setResearchGaps(mockGaps);
@@ -950,13 +1066,6 @@ function CoWriterPage() {
           type: 'causal',
           complexity: 'advanced',
           methodology: ['Randomized Controlled Trials', 'Longitudinal Studies']
-        },
-        {
-          id: '2',
-          question: 'What are the key factors influencing healthcare professionals\' adoption of AI technologies?',
-          type: 'exploratory',
-          complexity: 'intermediate',
-          methodology: ['Surveys', 'Interviews', 'Thematic Analysis']
         }
       ];
       setResearchQuestions(mockQuestions);
@@ -1013,17 +1122,6 @@ function CoWriterPage() {
           publisher: 'Nature Publishing Group',
           matchScore: 95,
           website: 'https://www.nature.com/nm/'
-        },
-        {
-          id: '2',
-          name: 'Journal of Medical Internet Research',
-          type: 'journal',
-          impactFactor: 7.076,
-          acceptanceRate: '25%',
-          focusAreas: ['Digital Health', 'Telemedicine', 'Health Informatics'],
-          publisher: 'JMIR Publications',
-          matchScore: 88,
-          website: 'https://www.jmir.org/'
         }
       ];
       setJournalMatches(mockMatches);
@@ -1055,7 +1153,6 @@ function CoWriterPage() {
     try {
       const generatedCitations: CitationResult[] = [];
 
-      // Generate citation for each selected item
       for (const citation of selectedCitations) {
         const sourceInfo = `${citation.author}. ${citation.title}. ${citation.journal}, ${citation.year}. ${citation.doi}`;
         
@@ -1080,13 +1177,11 @@ function CoWriterPage() {
         generatedCitations.push(result);
       }
 
-      // Insert all citations into the document
       if (editorWrapperRef.current && generatedCitations.length > 0) {
         const allCitations = generatedCitations.map(citation => citation.fullCitation).join('\n\n');
         editorWrapperRef.current.replaceSelection(allCitations);
       }
 
-      // Close all modals
       setCitationsFinderOpen(false);
       setCitationsOpen(false);
       setCitationResults(null);
@@ -1126,12 +1221,10 @@ function CoWriterPage() {
 
       const result: CitationResult = await response.json();
       
-      // Insert citation into the document
       if (editorWrapperRef.current) {
         editorWrapperRef.current.replaceSelection(result.fullCitation);
       }
 
-      // Close all modals
       setCitationsFinderOpen(false);
       setCitationsOpen(false);
       setCitationResults(null);
@@ -1154,7 +1247,7 @@ function CoWriterPage() {
     setSelectedCitations([]);
   };
 
-  // Updated Tool handler function to use the wrapper methods without alerts
+  // Updated Tool handler function with auto-replace
   const handleToolClick = (action: string) => {
     const selectedText = editorWrapperRef.current?.getSelectedText() || '';
     
@@ -1212,15 +1305,14 @@ function CoWriterPage() {
         console.log('Track Changes clicked');
         break;
       case 'journalExport':
-        console.log('Journal Export clicked');
+        handleSaveWithFormat('pdf');
         break;
       default:
         console.log(`Tool action ${action} clicked`);
     }
   };
 
-  // Editor action handlers (placeholder implementations)
-  function handleSave() { console.log('Save'); }
+  // Editor action handlers
   function handleUndo() { console.log('Undo'); }
   function handleRedo() { console.log('Redo'); }
   function handleCopy() { console.log('Copy'); }
@@ -1234,21 +1326,6 @@ function CoWriterPage() {
   function handleAlignRight() { console.log('Align Right'); }
   function handleBullets() { console.log('Bullets'); }
   function handleNumbers() { console.log('Numbers'); }
-
-  // Helper functions for applying changes
-  const applyToneOptimization = () => {
-    if (toneOptimizerOpen && editorWrapperRef.current) {
-      editorWrapperRef.current.replaceSelection(toneOptimizerOpen.optimized);
-      setToneOptimizerOpen(null);
-    }
-  };
-
-  const applyParaphrase = () => {
-    if (paraphraserOpen && editorWrapperRef.current) {
-      editorWrapperRef.current.replaceSelection(paraphraserOpen.paraphrased);
-      setParaphraserOpen(null);
-    }
-  };
 
   // Helper function to insert research gap into document
   const insertResearchGap = (gap: ResearchGap) => {
@@ -1312,97 +1389,7 @@ function CoWriterPage() {
     return issue.message || issue.explanation || `Consider fixing: ${issue.text}`;
   };
 
-  // Modal Components
-  const ToneOptimizerModal = () => {
-    if (!toneOptimizerOpen?.open) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Tone Optimizer</h3>
-            <button onClick={() => setToneOptimizerOpen(null)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Original Text</h4>
-              <div className="bg-gray-50 p-3 rounded border text-sm">
-                {toneOptimizerOpen.original}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Optimized Text</h4>
-              <div className="bg-green-50 p-3 rounded border text-sm">
-                {toneOptimizerOpen.optimized}
-              </div>
-            </div>
-          </div>
-          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
-            <button 
-              onClick={() => setToneOptimizerOpen(null)}
-              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={applyToneOptimization}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const ParaphraserModal = () => {
-    if (!paraphraserOpen?.open) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Paraphraser</h3>
-            <button onClick={() => setParaphraserOpen(null)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Original Text</h4>
-              <div className="bg-gray-50 p-3 rounded border text-sm">
-                {paraphraserOpen.original}
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Paraphrased Text</h4>
-              <div className="bg-purple-50 p-3 rounded border text-sm">
-                {paraphraserOpen.paraphrased}
-              </div>
-            </div>
-          </div>
-          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
-            <button 
-              onClick={() => setParaphraserOpen(null)}
-              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button 
-              onClick={applyParaphrase}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Apply Changes
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
+  // Modal Components (Citations and other modals remain similar but simplified)
   const CitationsModal = () => {
     const [source, setSource] = useState('');
     const [format, setFormat] = useState('apa');
@@ -1591,7 +1578,6 @@ function CoWriterPage() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col">
-              {/* Header with selection info and format */}
               <div className="p-4 border-b border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -1626,7 +1612,6 @@ function CoWriterPage() {
                 </div>
               </div>
 
-              {/* Citations List with Scrollable Area */}
               <div className="flex-1 overflow-hidden">
                 <div className="h-full overflow-y-auto p-4">
                   <div className="space-y-3">
@@ -1674,7 +1659,6 @@ function CoWriterPage() {
                 </div>
               </div>
 
-              {/* Footer with actions */}
               <div className="p-4 border-t border-gray-200 bg-gray-50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -1714,218 +1698,314 @@ function CoWriterPage() {
   };
 
   // NEW: Data Assistant Modal
-  const DataAssistantModal = () => {
-    if (!dataAssistantOpen) return null;
+const DataAssistantModal = () => {
+  if (!dataAssistantOpen) return null;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">DataSet Assistant</h3>
-            <button onClick={() => setDataAssistantOpen(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-6">
-              {/* File Upload Section */}
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <Upload className="mx-auto text-gray-400 mb-4" size={48} />
-                <h4 className="font-medium text-gray-700 mb-2">Upload Your Dataset</h4>
-                <p className="text-sm text-gray-500 mb-4">
-                  Supported formats: CSV, Excel, JSON, SPSS (.sav)
-                </p>
-                <input
-                  type="file"
-                  multiple
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="dataset-upload"
-                  accept=".csv,.xlsx,.xls,.json,.sav"
-                />
-                <label
-                  htmlFor="dataset-upload"
-                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
-                >
-                  <Upload size={16} className="mr-2" />
-                  Choose Files
-                </label>
-              </div>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">DataSet Assistant</h3>
+          <button onClick={() => setDataAssistantOpen(false)} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="space-y-6">
+            {/* File Upload Section */}
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <Upload className="mx-auto text-gray-400 mb-4" size={48} />
+              <h4 className="font-medium text-gray-700 mb-2">Upload Your Dataset</h4>
+              <p className="text-sm text-gray-500 mb-4">
+                Supported formats: CSV, Excel, JSON, SPSS (.sav)
+              </p>
+              <input
+                type="file"
+                multiple
+                onChange={handleFileUpload}
+                className="hidden"
+                id="dataset-upload"
+                accept=".csv,.xlsx,.xls,.json,.sav"
+              />
+              <label
+                htmlFor="dataset-upload"
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+              >
+                <Upload size={16} className="mr-2" />
+                Choose Files
+              </label>
+            </div>
 
-              {/* Uploaded Files List */}
-              {uploadedFiles.length > 0 && (
-                <div>
-                  <h4 className="font-medium text-gray-700 mb-3">Uploaded Files</h4>
-                  <div className="space-y-2">
-                    {uploadedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-3">
-                          <Database className="text-blue-600" size={20} />
-                          <div>
-                            <p className="font-medium text-sm">{file.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </p>
-                          </div>
+            {/* Uploaded Files List */}
+            {uploadedFiles.length > 0 && (
+              <div>
+                <h4 className="font-medium text-gray-700 mb-3">Uploaded Files</h4>
+                <div className="space-y-2">
+                  {uploadedFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Database className="text-blue-600" size={20} />
+                        <div>
+                          <p className="font-medium text-sm">{file.name}</p>
+                          <p className="text-xs text-gray-500">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
                         </div>
-                        <button
-                          onClick={() => handleDatasetAnalysis(file)}
-                          disabled={loading}
-                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
-                        >
-                          {loading ? 'Analyzing...' : 'Analyze'}
-                        </button>
                       </div>
-                    ))}
-                  </div>
+                      <button
+                        onClick={() => handleDatasetAnalysis(file)}
+                        disabled={loading}
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {loading ? 'Analyzing...' : 'Analyze'}
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Data Analysis Features */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 bg-blue-50 rounded-lg">
-                  <BarChart3 className="text-blue-600 mb-2" size={24} />
-                  <h5 className="font-medium text-blue-800">Statistical Analysis</h5>
-                  <p className="text-sm text-blue-600 mt-1">
-                    Generate descriptive statistics and correlation analysis
-                  </p>
-                </div>
-                <div className="p-4 bg-green-50 rounded-lg">
-                  <TrendingUp className="text-green-600 mb-2" size={24} />
-                  <h5 className="font-medium text-green-800">Visualization</h5>
-                  <p className="text-sm text-green-600 mt-1">
-                    Create charts and graphs for data exploration
-                  </p>
-                </div>
+            {/* Data Analysis Features */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <BarChart3 className="text-blue-600 mb-2" size={24} />
+                <h5 className="font-medium text-blue-800">Statistical Analysis</h5>
+                <p className="text-sm text-blue-600 mt-1">
+                  Generate descriptive statistics and correlation analysis
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg">
+                <TrendingUp className="text-green-600 mb-2" size={24} />
+                <h5 className="font-medium text-green-800">Visualization</h5>
+                <p className="text-sm text-green-600 mt-1">
+                  Create charts and graphs for data exploration
+                </p>
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
-            <button 
-              onClick={() => setDataAssistantOpen(false)}
-              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
-            >
-              Close
-            </button>
+        <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+          <button 
+            onClick={() => setDataAssistantOpen(false)}
+            className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Research Gaps Modal
+const ResearchGapsModal = () => {
+  if (!researchGapsOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Research Gaps Analyzer</h3>
+          <button onClick={() => setResearchGapsOpen(false)} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Input Section */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Research Topic
+                </label>
+                <input
+                  type="text"
+                  value={researchTopic}
+                  onChange={(e) => setResearchTopic(e.target.value)}
+                  placeholder="Enter your research topic or field..."
+                  className="w-full p-3 border border-gray-300 rounded-lg"
+                />
+              </div>
+              <button 
+                onClick={() => analyzeResearchGaps(researchTopic)}
+                disabled={loading || !researchTopic.trim()}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {loading && <Loader2 className="animate-spin" size={16} />}
+                <span>Analyze Research Gaps</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Results Section */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {researchGaps.length > 0 ? (
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-700">Identified Research Gaps</h4>
+                {researchGaps.map((gap, index) => (
+                  <div key={gap.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <h5 className="font-medium text-gray-800">{gap.topic}</h5>
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        gap.potentialImpact === 'high' ? 'bg-red-100 text-red-800' :
+                        gap.potentialImpact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {gap.potentialImpact.toUpperCase()} Impact
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">{gap.description}</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {gap.keywords.map((keyword, idx) => (
+                        <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs text-gray-500">
+                        Methods: {gap.methodology.join(', ')}
+                      </div>
+                      <button
+                        onClick={() => insertResearchGap(gap)}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        Insert to Document
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <Target className="mx-auto text-gray-400 mb-4" size={48} />
+                <p>Enter a research topic to identify potential research gaps</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  // NEW: Research Gaps Modal
-  const ResearchGapsModal = () => {
-    if (!researchGapsOpen) return null;
+// NEW: Research Questions Modal
+const ResearchQuestionsModal = () => {
+  if (!researchQuestionsOpen) return null;
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Research Gaps Analyzer</h3>
-            <button onClick={() => setResearchGapsOpen(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Input Section */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Research Topic
-                  </label>
-                  <input
-                    type="text"
-                    value={researchTopic}
-                    onChange={(e) => setResearchTopic(e.target.value)}
-                    placeholder="Enter your research topic or field..."
-                    className="w-full p-3 border border-gray-300 rounded-lg"
-                  />
-                </div>
-                <button 
-                  onClick={() => analyzeResearchGaps(researchTopic)}
-                  disabled={loading || !researchTopic.trim()}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                >
-                  {loading && <Loader2 className="animate-spin" size={16} />}
-                  <span>Analyze Research Gaps</span>
-                </button>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Research Question Generator</h3>
+          <button onClick={() => setResearchQuestionsOpen(false)} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Input Section */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Research Topic
+                </label>
+                <input
+                  type="text"
+                  value={researchTopic}
+                  onChange={(e) => setResearchTopic(e.target.value)}
+                  placeholder="Enter your research topic or field..."
+                  className="w-full p-3 border border-gray-300 rounded-lg"
+                />
               </div>
+              <button 
+                onClick={() => generateResearchQuestions(researchTopic)}
+                disabled={loading || !researchTopic.trim()}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {loading && <Loader2 className="animate-spin" size={16} />}
+                <span>Generate Research Questions</span>
+              </button>
             </div>
+          </div>
 
-            {/* Results Section */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {researchGaps.length > 0 ? (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-700">Identified Research Gaps</h4>
-                  {researchGaps.map((gap, index) => (
-                    <div key={gap.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <h5 className="font-medium text-gray-800">{gap.topic}</h5>
+          {/* Results Section */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {researchQuestions.length > 0 ? (
+              <div className="space-y-4">
+                <h4 className="font-medium text-gray-700">Generated Research Questions</h4>
+                {researchQuestions.map((question, index) => (
+                  <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <h5 className="font-medium text-gray-800 flex-1">{question.question}</h5>
+                      <div className="flex space-x-2 ml-4">
                         <span className={`text-xs px-2 py-1 rounded ${
-                          gap.potentialImpact === 'high' ? 'bg-red-100 text-red-800' :
-                          gap.potentialImpact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          question.type === 'causal' ? 'bg-purple-100 text-purple-800' :
+                          question.type === 'comparative' ? 'bg-blue-100 text-blue-800' :
+                          question.type === 'exploratory' ? 'bg-green-100 text-green-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {question.type}
+                        </span>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          question.complexity === 'advanced' ? 'bg-red-100 text-red-800' :
+                          question.complexity === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
                           'bg-green-100 text-green-800'
                         }`}>
-                          {gap.potentialImpact.toUpperCase()} Impact
+                          {question.complexity}
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{gap.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {gap.keywords.map((keyword, idx) => (
-                          <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
-                            {keyword}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs text-gray-500">
-                          Methods: {gap.methodology.join(', ')}
-                        </div>
-                        <button
-                          onClick={() => insertResearchGap(gap)}
-                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                        >
-                          Insert to Document
-                        </button>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <Target className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p>Enter a research topic to identify potential research gaps</p>
-                </div>
-              )}
-            </div>
+                    <div className="text-xs text-gray-500 mb-3">
+                      Suggested Methods: {question.methodology.join(', ')}
+                    </div>
+                    <button
+                      onClick={() => insertResearchQuestion(question)}
+                      className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Insert to Document
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <Lightbulb className="mx-auto text-gray-400 mb-4" size={48} />
+                <p>Enter a research topic to generate relevant research questions</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
-  // NEW: Research Questions Modal
-  const ResearchQuestionsModal = () => {
-    if (!researchQuestionsOpen) return null;
+// NEW: Journal Matcher Modal
+const JournalMatcherModal = () => {
+  const [field, setField] = useState('general');
 
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Research Question Generator</h3>
-            <button onClick={() => setResearchQuestionsOpen(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Input Section */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="space-y-4">
+  if (!journalMatcherOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Conference & Journal Matcher</h3>
+          <button onClick={() => setJournalMatcherOpen(false)} className="text-gray-400 hover:text-gray-600">
+            <X size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {/* Input Section */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Research Topic
@@ -1934,202 +2014,106 @@ function CoWriterPage() {
                     type="text"
                     value={researchTopic}
                     onChange={(e) => setResearchTopic(e.target.value)}
-                    placeholder="Enter your research topic or field..."
+                    placeholder="Enter your research topic..."
                     className="w-full p-3 border border-gray-300 rounded-lg"
                   />
                 </div>
-                <button 
-                  onClick={() => generateResearchQuestions(researchTopic)}
-                  disabled={loading || !researchTopic.trim()}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                >
-                  {loading && <Loader2 className="animate-spin" size={16} />}
-                  <span>Generate Research Questions</span>
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Field
+                  </label>
+                  <select
+                    value={field}
+                    onChange={(e) => setField(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                  >
+                    <option value="general">General</option>
+                    <option value="computer">Computer Science</option>
+                    <option value="medicine">Medicine</option>
+                    <option value="psychology">Psychology</option>
+                    <option value="education">Education</option>
+                    <option value="engineering">Engineering</option>
+                    <option value="business">Business</option>
+                  </select>
+                </div>
               </div>
-            </div>
-
-            {/* Results Section */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {researchQuestions.length > 0 ? (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-700">Generated Research Questions</h4>
-                  {researchQuestions.map((question, index) => (
-                    <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <h5 className="font-medium text-gray-800 flex-1">{question.question}</h5>
-                        <div className="flex space-x-2 ml-4">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            question.type === 'causal' ? 'bg-purple-100 text-purple-800' :
-                            question.type === 'comparative' ? 'bg-blue-100 text-blue-800' :
-                            question.type === 'exploratory' ? 'bg-green-100 text-green-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {question.type}
-                          </span>
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            question.complexity === 'advanced' ? 'bg-red-100 text-red-800' :
-                            question.complexity === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-green-100 text-green-800'
-                          }`}>
-                            {question.complexity}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 mb-3">
-                        Suggested Methods: {question.methodology.join(', ')}
-                      </div>
-                      <button
-                        onClick={() => insertResearchQuestion(question)}
-                        className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                      >
-                        Insert to Document
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <Lightbulb className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p>Enter a research topic to generate relevant research questions</p>
-                </div>
-              )}
+              <button 
+                onClick={() => findJournalMatches(researchTopic, field)}
+                disabled={loading || !researchTopic.trim()}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+              >
+                {loading && <Loader2 className="animate-spin" size={16} />}
+                <span>Find Publication Outlets</span>
+              </button>
             </div>
           </div>
-        </div>
-      </div>
-    );
-  };
 
-  // NEW: Journal Matcher Modal
-  const JournalMatcherModal = () => {
-    const [field, setField] = useState('general');
-
-    if (!journalMatcherOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Conference & Journal Matcher</h3>
-            <button onClick={() => setJournalMatcherOpen(false)} className="text-gray-400 hover:text-gray-600">
-              <X size={20} />
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-hidden flex flex-col">
-            {/* Input Section */}
-            <div className="p-6 border-b border-gray-200">
+          {/* Results Section */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {journalMatches.length > 0 ? (
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Research Topic
-                    </label>
-                    <input
-                      type="text"
-                      value={researchTopic}
-                      onChange={(e) => setResearchTopic(e.target.value)}
-                      placeholder="Enter your research topic..."
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Field
-                    </label>
-                    <select
-                      value={field}
-                      onChange={(e) => setField(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg"
-                    >
-                      <option value="general">General</option>
-                      <option value="computer">Computer Science</option>
-                      <option value="medicine">Medicine</option>
-                      <option value="psychology">Psychology</option>
-                      <option value="education">Education</option>
-                      <option value="engineering">Engineering</option>
-                      <option value="business">Business</option>
-                    </select>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => findJournalMatches(researchTopic, field)}
-                  disabled={loading || !researchTopic.trim()}
-                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-                >
-                  {loading && <Loader2 className="animate-spin" size={16} />}
-                  <span>Find Publication Outlets</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Results Section */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {journalMatches.length > 0 ? (
-                <div className="space-y-4">
-                  <h4 className="font-medium text-gray-700">Recommended Publication Outlets</h4>
-                  {journalMatches.map((journal, index) => (
-                    <div key={journal.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex-1">
-                          <h5 className="font-medium text-gray-800">{journal.name}</h5>
-                          <p className="text-sm text-gray-600">{journal.publisher} • {journal.type.toUpperCase()}</p>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-lg font-bold ${
-                            journal.matchScore >= 90 ? 'text-green-600' :
-                            journal.matchScore >= 80 ? 'text-yellow-600' :
-                            'text-blue-600'
-                          }`}>
-                            {journal.matchScore}%
-                          </div>
-                          <div className="text-xs text-gray-500">Match Score</div>
-                        </div>
+                <h4 className="font-medium text-gray-700">Recommended Publication Outlets</h4>
+                {journalMatches.map((journal, index) => (
+                  <div key={journal.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-800">{journal.name}</h5>
+                        <p className="text-sm text-gray-600">{journal.publisher} • {journal.type.toUpperCase()}</p>
                       </div>
-                      
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
-                        <div>
-                          <span className="text-gray-500">Impact Factor:</span>
-                          <div className="font-medium">{journal.impactFactor || 'N/A'}</div>
+                      <div className="text-right">
+                        <div className={`text-lg font-bold ${
+                          journal.matchScore >= 90 ? 'text-green-600' :
+                          journal.matchScore >= 80 ? 'text-yellow-600' :
+                          'text-blue-600'
+                        }`}>
+                          {journal.matchScore}%
                         </div>
-                        <div>
-                          <span className="text-gray-500">Acceptance Rate:</span>
-                          <div className="font-medium">{journal.acceptanceRate}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Focus Areas:</span>
-                          <div className="font-medium">{journal.focusAreas.slice(0, 2).join(', ')}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Website:</span>
-                          <a href={journal.website} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
-                            Visit
-                          </a>
-                        </div>
+                        <div className="text-xs text-gray-500">Match Score</div>
                       </div>
-
-                      <button
-                        onClick={() => insertJournalMatch(journal)}
-                        className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
-                      >
-                        Insert to Document
-                      </button>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <MapPin className="mx-auto text-gray-400 mb-4" size={48} />
-                  <p>Enter your research topic to find the best publication outlets</p>
-                </div>
-              )}
-            </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
+                      <div>
+                        <span className="text-gray-500">Impact Factor:</span>
+                        <div className="font-medium">{journal.impactFactor || 'N/A'}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Acceptance Rate:</span>
+                        <div className="font-medium">{journal.acceptanceRate}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Focus Areas:</span>
+                        <div className="font-medium">{journal.focusAreas.slice(0, 2).join(', ')}</div>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Website:</span>
+                        <a href={journal.website} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
+                          Visit
+                        </a>
+                      </div>
+                    </div>
+
+                    <button
+                      onClick={() => insertJournalMatch(journal)}
+                      className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                    >
+                      Insert to Document
+                    </button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center text-gray-500 py-8">
+                <MapPin className="mx-auto text-gray-400 mb-4" size={48} />
+                <p>Enter your research topic to find the best publication outlets</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -2319,6 +2303,7 @@ function CoWriterPage() {
             ref={editorWrapperRef}
             onPaperTemplateClick={() => {}}
             onTextSelect={handleTextSelect}
+            onContentChange={handleContentChange}
           />
         </div>
 
@@ -2463,7 +2448,7 @@ function CoWriterPage() {
                 {grammarIssues.slice(0, 3).map((issue, index) => (
                   <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-2">
                     <div className="flex items-start space-x-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt=2"></div>
                       <div className="flex-1">
                         <p className="text-sm text-gray-800 mb-1">
                           {getIssueMessage(issue)}
@@ -2560,14 +2545,13 @@ function CoWriterPage() {
       </div>
 
       {/* Modals - Only render when needed */}
-      {toneOptimizerOpen?.open && <ToneOptimizerModal />}
-      {paraphraserOpen?.open && <ParaphraserModal />}
       {citationsOpen && <CitationsModal />}
       {citationsFinderOpen && <CitationsFinderModal />}
-      {dataAssistantOpen && <DataAssistantModal />}
-      {researchGapsOpen && <ResearchGapsModal />}
-      {researchQuestionsOpen && <ResearchQuestionsModal />}
-      {journalMatcherOpen && <JournalMatcherModal />}
+      // Add these to your existing modals in the return statement
+{dataAssistantOpen && <DataAssistantModal />}
+{researchGapsOpen && <ResearchGapsModal />}
+{researchQuestionsOpen && <ResearchQuestionsModal />}
+{journalMatcherOpen && <JournalMatcherModal />}
     </div>
   );
 }
