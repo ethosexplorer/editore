@@ -97,6 +97,21 @@ interface CitationResult {
   verified: boolean;
 }
 
+interface CitationFinderResult {
+  citations: Array<{
+    author: string;
+    title: string;
+    journal: string;
+    year: string;
+    doi: string;
+    relevance: number;
+  }>;
+  query: string;
+  field: string;
+  totalFound: number;
+  processingTime: number;
+}
+
 // Extend the Window interface to include loadPaperTemplate
 declare global {
   interface Window {
@@ -162,6 +177,8 @@ function CoWriterPage() {
   const [toneOptimizerOpen, setToneOptimizerOpen] = useState<ToneOptimizerState | null>(null);
   const [paraphraserOpen, setParaphraserOpen] = useState<ParaphraserState | null>(null);
   const [citationsOpen, setCitationsOpen] = useState(false);
+  const [citationsFinderOpen, setCitationsFinderOpen] = useState(false);
+  const [citationResults, setCitationResults] = useState<CitationFinderResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
   const [activeTool, setActiveTool] = useState<string | null>(null);
@@ -176,7 +193,12 @@ function CoWriterPage() {
 
   // API base URL function - same as your other components
   const getApiBaseUrl = () => {
-    return ''; // Use the same base URL logic as your other components
+    // For development - adjust based on your environment
+    if (process.env.NODE_ENV === 'development') {
+      return 'http://localhost:3000';
+    }
+    // For production - use your deployed server URL
+    return ''; // Empty string for same-origin requests
   }
 
   const menuTabs = [
@@ -210,11 +232,11 @@ function CoWriterPage() {
 
   const researchBotTools = [
     { 
-      name: 'DataSet Assistant', 
-      icon: Download, 
-      description: 'Upload, Summarize, Visualize, Cite', 
-      color: 'bg-orange-500',
-      action: 'dataSetAssistant'
+      name: 'Summarize', 
+      icon: Zap, 
+      description: 'AI-powered text summarization', 
+      color: 'bg-yellow-500',
+      action: 'summarize'
     },
     { 
       name: 'Paper Templates', 
@@ -222,13 +244,6 @@ function CoWriterPage() {
       description: 'Pre-structured sections with AI guidance', 
       color: 'bg-blue-500', 
       action: 'paperTemplate'
-    },
-    { 
-      name: 'Title Generator', 
-      icon: Sparkles, 
-      description: 'AI-suggested titles and abstracts', 
-      color: 'bg-pink-500',
-      action: 'titleGenerator'
     },
     { 
       name: 'Tone Optimizer', 
@@ -252,11 +267,11 @@ function CoWriterPage() {
       action: 'grammarCheck'
     },
     { 
-      name: 'Literature Summarizer', 
-      icon: BookOpen, 
-      description: 'Extract key findings from PDFs', 
-      color: 'bg-teal-500',
-      action: 'literatureSummarizer'
+      name: 'Humanize', 
+      icon: Users, 
+      description: 'Make AI text sound human', 
+      color: 'bg-pink-500',
+      action: 'humanize'
     },
     { 
       name: 'Citations & Reference Manager', 
@@ -266,11 +281,18 @@ function CoWriterPage() {
       action: 'citations'
     },
     { 
-      name: 'Track Changes', 
-      icon: Eye, 
-      description: 'Show AI edits with accept/reject', 
-      color: 'bg-violet-500',
-      action: 'trackChanges'
+      name: 'AI Detector', 
+      icon: Shield, 
+      description: 'Check if text is AI-generated', 
+      color: 'bg-gray-500',
+      action: 'aiDetect'
+    },
+    { 
+      name: 'DataSet Assistant', 
+      icon: Download, 
+      description: 'Upload, Summarize, Visualize, Cite', 
+      color: 'bg-orange-500',
+      action: 'dataSetAssistant'
     },
     { 
       name: 'Journal Export Format', 
@@ -282,6 +304,21 @@ function CoWriterPage() {
   ];
 
   const premiumTools = [
+    { 
+      name: 'Citations Finder', 
+      icon: Search, 
+      description: 'AI suggests relevant papers and articles', 
+      color: 'bg-indigo-500',
+      action: 'citationsFinder'
+    },
+    { 
+      name: 'Plagiarism Check', 
+      icon: Shield, 
+      description: 'Similarity index checker', 
+      color: 'bg-slate-500', 
+      premium: true,
+      action: 'plagiarismCheck'
+    },
     { 
       name: 'Research Gaps', 
       icon: Target, 
@@ -299,31 +336,16 @@ function CoWriterPage() {
       action: 'researchQuestions'
     },
     { 
-      name: 'Citations Finder', 
-      icon: Quote, 
-      description: 'AI suggests relevant papers, articles, or DOIs', 
-      color: 'bg-indigo-500',
-      action: 'citationsFinder'
-    },
-    { 
-      name: 'Plagiarism Check', 
-      icon: Shield, 
-      description: 'Similarity index checker', 
-      color: 'bg-slate-500', 
-      premium: true,
-      action: 'plagiarismCheck'
-    },
-    { 
       name: 'Conference & Journal Matcher', 
       icon: Target, 
-      description: 'finds best publication outlets', 
-      color: 'bg-slate-500', 
+      description: 'Finds best publication outlets', 
+      color: 'bg-cyan-500', 
       premium: true,
       action: 'journalMatcher'
     },
   ];
 
-  // API Integration Functions using fetch
+  // API Integration Functions using fetch - UPDATED FOR WORKING-SERVER.CJS
   const handleToneOptimizer = async (text: string) => {
     if (!text.trim()) {
       alert('Please select some text to optimize');
@@ -332,7 +354,7 @@ function CoWriterPage() {
 
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/co-write`;
+      const apiUrl = `${getApiBaseUrl()}/api/paraphrase`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -340,9 +362,10 @@ function CoWriterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          prompt: text,
-          action: 'tone-optimize',
-          tone: 'academic'
+          text: text,
+          mode: 'formal', // Using formal mode for academic tone optimization
+          synonymLevel: 30, // Lower synonym level for tone optimization
+          language: 'en-US'
         }),
       });
 
@@ -352,10 +375,10 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      if (result.result) {
+      if (result.paraphrased) {
         setToneOptimizerOpen({
           original: text,
-          optimized: result.result,
+          optimized: result.paraphrased,
           open: true
         });
       }
@@ -384,8 +407,9 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           text: text,
-          mode: 'academic',
-          synonymLevel: 70
+          mode: 'standard',
+          synonymLevel: 70,
+          language: 'en-US'
         }),
       });
 
@@ -463,10 +487,10 @@ function CoWriterPage() {
     }
   };
 
-  const handleCitations = async (sourceInfo: string) => {
+  const handleCitations = async (sourceInfo: string, format: string = 'apa', sourceType: string = 'website') => {
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/citations`;
+      const apiUrl = `${getApiBaseUrl()}/api/citation`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -475,8 +499,8 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           source: sourceInfo,
-          format: 'apa',
-          sourceType: 'website'
+          format: format,
+          sourceType: sourceType
         }),
       });
 
@@ -498,7 +522,7 @@ function CoWriterPage() {
     }
   };
 
-  const handleCitationsFinder = async (query: string) => {
+  const handleCitationsFinder = async (query: string, maxResults: number = 5, field: string = 'general') => {
     if (!query.trim()) {
       alert('Please enter a research topic');
       return;
@@ -506,7 +530,7 @@ function CoWriterPage() {
 
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/citations-finder`;
+      const apiUrl = `${getApiBaseUrl()}/api/citation-finder`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -515,8 +539,8 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           query: query,
-          maxResults: 5,
-          field: 'general'
+          maxResults: maxResults,
+          field: field
         }),
       });
 
@@ -524,11 +548,11 @@ function CoWriterPage() {
         throw new Error(`Server error: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result: CitationFinderResult = await response.json();
       
+      setCitationResults(result);
+      setCitationsFinderOpen(true);
       setActiveTool('citations-finder');
-      // Store results in state to display
-      console.log('Citations found:', result);
     } catch (error) {
       console.error('Citations finder failed:', error);
       alert('Citations search failed. Please try again.');
@@ -566,7 +590,7 @@ function CoWriterPage() {
       
       setActiveTool('plagiarism');
       // Display plagiarism results
-      console.log('Plagiarism check result:', result);
+      alert(`Plagiarism Check Complete:\nOverall Score: ${result.overallScore}%\nUnique Content: ${result.uniqueContent}%\nProcessing Time: ${result.processingTime}s`);
     } catch (error) {
       console.error('Plagiarism check failed:', error);
       alert('Plagiarism check failed. Please try again.');
@@ -575,15 +599,15 @@ function CoWriterPage() {
     }
   };
 
-  const handleJournalMatcher = async (text: string) => {
+  const handleHumanizeText = async (text: string) => {
     if (!text.trim()) {
-      alert('Please provide some research content');
+      alert('Please select some text to humanize');
       return;
     }
 
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/journal-matcher`;
+      const apiUrl = `${getApiBaseUrl()}/api/humanize`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -591,9 +615,10 @@ function CoWriterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: text,
-          field: 'general',
-          type: 'journal'
+          inputText: text,
+          humanizationMode: 'casual',
+          creativityLevel: 75,
+          language: 'en-US'
         }),
       });
 
@@ -603,26 +628,26 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      setActiveTool('journal-matcher');
-      // Display journal matches
-      console.log('Journal matches:', result);
+      if (result.humanizedText && editorWrapperRef.current) {
+        editorWrapperRef.current.replaceSelection(result.humanizedText);
+      }
     } catch (error) {
-      console.error('Journal matching failed:', error);
-      alert('Journal matching failed. Please try again.');
+      console.error('Text humanization failed:', error);
+      alert('Text humanization failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleTitleGenerator = async (text: string) => {
+  const handleSummarize = async (text: string) => {
     if (!text.trim()) {
-      alert('Please provide some research content');
+      alert('Please select some text to summarize');
       return;
     }
 
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/title-generator`;
+      const apiUrl = `${getApiBaseUrl()}/api/summarize`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -631,8 +656,9 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           text: text,
-          style: 'academic',
-          count: 5
+          length: 'medium',
+          mode: 'paragraph',
+          language: 'en-US'
         }),
       });
 
@@ -642,26 +668,26 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      setActiveTool('title-generator');
-      // Display generated titles
-      console.log('Generated titles:', result);
+      if (result.summary && editorWrapperRef.current) {
+        editorWrapperRef.current.replaceSelection(result.summary);
+      }
     } catch (error) {
-      console.error('Title generation failed:', error);
-      alert('Title generation failed. Please try again.');
+      console.error('Summarization failed:', error);
+      alert('Summarization failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleResearchQuestions = async (text: string) => {
+  const handleAIDetection = async (text: string) => {
     if (!text.trim()) {
-      alert('Please provide some research content');
+      alert('Please select some text to analyze');
       return;
     }
 
     setLoading(true);
     try {
-      const apiUrl = `${getApiBaseUrl()}/api/research-questions`;
+      const apiUrl = `${getApiBaseUrl()}/api/ai-detect`;
       
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -670,8 +696,7 @@ function CoWriterPage() {
         },
         body: JSON.stringify({
           text: text,
-          type: 'mixed',
-          count: 5
+          language: 'en'
         }),
       });
 
@@ -681,12 +706,11 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      setActiveTool('research-questions');
-      // Display generated questions
-      console.log('Research questions:', result);
+      // Display AI detection results
+      alert(`AI Detection Results:\nAI Probability: ${result.aiProbability}%\nHuman Probability: ${result.humanProbability}%\nConfidence: ${result.confidence}%`);
     } catch (error) {
-      console.error('Research questions generation failed:', error);
-      alert('Research questions generation failed. Please try again.');
+      console.error('AI detection failed:', error);
+      alert('AI detection failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -710,23 +734,30 @@ function CoWriterPage() {
         setCitationsOpen(true);
         break;
       case 'citationsFinder':
-        const query = prompt('Enter research topic:');
-        if (query) handleCitationsFinder(query);
+        setCitationsFinderOpen(true);
         break;
       case 'plagiarismCheck':
         handlePlagiarismCheck(selectedText);
         break;
+      case 'humanize':
+        handleHumanizeText(selectedText);
+        break;
+      case 'summarize':
+        handleSummarize(selectedText);
+        break;
+      case 'aiDetect':
+        handleAIDetection(selectedText);
+        break;
       case 'journalMatcher':
-        handleJournalMatcher(selectedText);
+        alert('Journal Matcher - Custom implementation needed');
         break;
       case 'titleGenerator':
-        handleTitleGenerator(selectedText);
+        alert('Title Generator - Custom implementation needed');
         break;
       case 'researchQuestions':
-        handleResearchQuestions(selectedText);
+        alert('Research Questions - Custom implementation needed');
         break;
       case 'paperTemplate':
-        // Now TypeScript knows this property exists and is optional
         if (window.loadPaperTemplate) {
           window.loadPaperTemplate();
         } else {
@@ -901,6 +932,7 @@ function CoWriterPage() {
   const CitationsModal = () => {
     const [source, setSource] = useState('');
     const [format, setFormat] = useState('apa');
+    const [sourceType, setSourceType] = useState('website');
 
     const handleGenerateCitation = async () => {
       if (!source.trim()) {
@@ -908,7 +940,7 @@ function CoWriterPage() {
         return;
       }
 
-      await handleCitations(source);
+      await handleCitations(source, format, sourceType);
     };
 
     return (
@@ -933,20 +965,37 @@ function CoWriterPage() {
                 rows={3}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Citation Format
-              </label>
-              <select
-                value={format}
-                onChange={(e) => setFormat(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded"
-              >
-                <option value="apa">APA</option>
-                <option value="mla">MLA</option>
-                <option value="chicago">Chicago</option>
-                <option value="harvard">Harvard</option>
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Citation Format
+                </label>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="apa">APA</option>
+                  <option value="mla">MLA</option>
+                  <option value="chicago">Chicago</option>
+                  <option value="harvard">Harvard</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Source Type
+                </label>
+                <select
+                  value={sourceType}
+                  onChange={(e) => setSourceType(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded"
+                >
+                  <option value="website">Website</option>
+                  <option value="book">Book</option>
+                  <option value="journal">Journal</option>
+                  <option value="image">Image</option>
+                </select>
+              </div>
             </div>
           </div>
           <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
@@ -964,6 +1013,128 @@ function CoWriterPage() {
               {loading ? <Loader2 className="animate-spin" size={16} /> : 'Generate Citation'}
             </button>
           </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CitationsFinderModal = () => {
+    const [query, setQuery] = useState('');
+    const [field, setField] = useState('general');
+    const [maxResults, setMaxResults] = useState(5);
+
+    const handleSearchCitations = async () => {
+      if (!query.trim()) {
+        alert('Please enter a research topic');
+        return;
+      }
+
+      await handleCitationsFinder(query, maxResults, field);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Find Academic Citations</h3>
+            <button onClick={() => setCitationsFinderOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          
+          {!citationResults ? (
+            <div className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Research Topic
+                </label>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Enter your research topic or keywords..."
+                  className="w-full p-2 border border-gray-300 rounded"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Field
+                  </label>
+                  <select
+                    value={field}
+                    onChange={(e) => setField(e.target.value)}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  >
+                    <option value="general">General</option>
+                    <option value="computer">Computer Science</option>
+                    <option value="medicine">Medicine</option>
+                    <option value="psychology">Psychology</option>
+                    <option value="education">Education</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Max Results
+                  </label>
+                  <select
+                    value={maxResults}
+                    onChange={(e) => setMaxResults(Number(e.target.value))}
+                    className="w-full p-2 border border-gray-300 rounded"
+                  >
+                    <option value={3}>3</option>
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                  </select>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button 
+                  onClick={() => setCitationsFinderOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleSearchCitations}
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {loading ? <Loader2 className="animate-spin" size={16} /> : 'Search Citations'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex-1 overflow-y-auto p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-medium text-gray-700">
+                  Found {citationResults.totalFound} citations for "{citationResults.query}"
+                </h4>
+                <button 
+                  onClick={() => setCitationResults(null)}
+                  className="text-sm text-blue-600 hover:text-blue-800"
+                >
+                  New Search
+                </button>
+              </div>
+              <div className="space-y-3">
+                {citationResults.citations.map((citation, index) => (
+                  <div key={index} className="bg-gray-50 p-3 rounded border">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        {citation.relevance}% relevant
+                      </span>
+                      <span className="text-xs text-gray-500">{citation.year}</span>
+                    </div>
+                    <h5 className="font-medium text-gray-800 mb-1">{citation.title}</h5>
+                    <p className="text-sm text-gray-600 mb-1">{citation.author}</p>
+                    <p className="text-sm text-gray-500 mb-2">{citation.journal}</p>
+                    <p className="text-xs text-blue-600">{citation.doi}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -1353,6 +1524,34 @@ function CoWriterPage() {
                   <Search className="text-orange-600 mb-1" size={16} />
                   <span className="text-xs text-orange-800 block">Find Sources</span>
                 </button>
+                <button 
+                  onClick={() => handleToolClick('summarize')}
+                  className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors"
+                >
+                  <Zap className="text-yellow-600 mb-1" size={16} />
+                  <span className="text-xs text-yellow-800 block">Summarize</span>
+                </button>
+                <button 
+                  onClick={() => handleToolClick('humanize')}
+                  className="p-3 bg-pink-50 rounded-lg border border-pink-200 hover:bg-pink-100 transition-colors"
+                >
+                  <Users className="text-pink-600 mb-1" size={16} />
+                  <span className="text-xs text-pink-800 block">Humanize</span>
+                </button>
+                <button 
+                  onClick={() => handleToolClick('aiDetect')}
+                  className="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                >
+                  <Shield className="text-gray-600 mb-1" size={16} />
+                  <span className="text-xs text-gray-800 block">AI Detect</span>
+                </button>
+                <button 
+                  onClick={() => handleToolClick('plagiarismCheck')}
+                  className="p-3 bg-red-50 rounded-lg border border-red-200 hover:bg-red-100 transition-colors"
+                >
+                  <Shield className="text-red-600 mb-1" size={16} />
+                  <span className="text-xs text-red-800 block">Plagiarism</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1373,6 +1572,7 @@ function CoWriterPage() {
       <ToneOptimizerModal />
       <ParaphraserModal />
       <CitationsModal />
+      <CitationsFinderModal />
     </div>
   );
 }
