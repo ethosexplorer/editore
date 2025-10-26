@@ -1796,10 +1796,10 @@ function CoWriterPage() {
         )}
       </div>
 
-      {/* Modals */}
-      <ToneOptimizerModal />
-      <ParaphraserModal />
-      <CitationsModal />
+      {/* Modals - Only render when needed */}
+      {toneOptimizerOpen?.open && <ToneOptimizerModal />}
+      {paraphraserOpen?.open && <ParaphraserModal />}
+      {citationsOpen && <CitationsModal />}
       {citationsFinderOpen && <CitationsFinderModal />}
     </div>
   );
