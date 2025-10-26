@@ -733,7 +733,7 @@ function CoWriterPage() {
     });
   };
 
-  // Generate citations for selected items
+  // Generate citations for selected items and close all modals
   const handleGenerateSelectedCitations = async () => {
     if (selectedCitations.length === 0) {
       alert('Please select at least one citation to generate');
@@ -770,13 +770,17 @@ function CoWriterPage() {
       }
 
       // Insert all citations into the document
-      if (editorWrapperRef.current) {
+      if (editorWrapperRef.current && generatedCitations.length > 0) {
         const allCitations = generatedCitations.map(citation => citation.fullCitation).join('\n\n');
         editorWrapperRef.current.replaceSelection(allCitations);
       }
 
+      // Close all modals
       setCitationsFinderOpen(false);
+      setCitationsOpen(false);
+      setCitationResults(null);
       setSelectedCitations([]);
+      
       alert(`Successfully generated ${generatedCitations.length} citations in ${citationFormat.toUpperCase()} format!`);
       
     } catch (error) {
@@ -785,6 +789,60 @@ function CoWriterPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle single citation selection and auto-insert
+  const handleSingleCitationSelect = async (citation: CitationItem) => {
+    setLoading(true);
+    try {
+      const sourceInfo = `${citation.author}. ${citation.title}. ${citation.journal}, ${citation.year}. ${citation.doi}`;
+      
+      const apiUrl = `${getApiBaseUrl()}/api/citation`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: sourceInfo,
+          format: citationFormat,
+          sourceType: 'journal'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result: CitationResult = await response.json();
+      
+      // Insert citation into the document
+      if (editorWrapperRef.current) {
+        editorWrapperRef.current.replaceSelection(result.fullCitation);
+      }
+
+      // Close all modals
+      setCitationsFinderOpen(false);
+      setCitationsOpen(false);
+      setCitationResults(null);
+      setSelectedCitations([]);
+      
+      alert(`Citation generated and inserted in ${citationFormat.toUpperCase()} format!`);
+      
+    } catch (error) {
+      console.error('Citation generation failed:', error);
+      alert('Failed to generate citation. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Close all citation modals
+  const closeAllCitationModals = () => {
+    setCitationsFinderOpen(false);
+    setCitationsOpen(false);
+    setCitationResults(null);
+    setSelectedCitations([]);
   };
 
   // Updated Tool handler function to use the wrapper methods
@@ -1118,11 +1176,7 @@ function CoWriterPage() {
         <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <h3 className="text-lg font-semibold">Find Academic Citations</h3>
-            <button onClick={() => {
-              setCitationsFinderOpen(false);
-              setCitationResults(null);
-              setSelectedCitations([]);
-            }} className="text-gray-400 hover:text-gray-600">
+            <button onClick={closeAllCitationModals} className="text-gray-400 hover:text-gray-600">
               <X size={20} />
             </button>
           </div>
@@ -1175,7 +1229,7 @@ function CoWriterPage() {
               </div>
               <div className="flex justify-end space-x-3">
                 <button 
-                  onClick={() => setCitationsFinderOpen(false)}
+                  onClick={closeAllCitationModals}
                   className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
@@ -1227,49 +1281,51 @@ function CoWriterPage() {
                 </div>
               </div>
 
-              {/* Citations List */}
-              <div className="flex-1 overflow-y-auto p-4">
-                <div className="space-y-3">
-                  {citationResults.citations.map((citation, index) => {
-                    const isSelected = selectedCitations.some(c => c.doi === citation.doi);
-                    return (
-                      <div 
-                        key={index} 
-                        className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                          isSelected 
-                            ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' 
-                            : 'bg-white border-gray-200 hover:border-blue-300'
-                        }`}
-                        onClick={() => handleCitationSelect(citation)}
-                      >
-                        <div className="flex items-start space-x-3">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className={`w-5 h-5 rounded border flex items-center justify-center ${
-                              isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
-                            }`}>
-                              {isSelected && <Check size={14} className="text-white" />}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className={`text-xs px-2 py-1 rounded ${
-                                citation.relevance >= 80 ? 'bg-green-100 text-green-800' :
-                                citation.relevance >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-blue-100 text-blue-800'
+              {/* Citations List with Scrollable Area */}
+              <div className="flex-1 overflow-hidden">
+                <div className="h-full overflow-y-auto p-4">
+                  <div className="space-y-3">
+                    {citationResults.citations.map((citation, index) => {
+                      const isSelected = selectedCitations.some(c => c.doi === citation.doi);
+                      return (
+                        <div 
+                          key={index} 
+                          className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                            isSelected 
+                              ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200' 
+                              : 'bg-white border-gray-200 hover:border-blue-300'
+                          }`}
+                          onClick={() => handleSingleCitationSelect(citation)}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <div className="flex-shrink-0 mt-1">
+                              <div className={`w-5 h-5 rounded border flex items-center justify-center ${
+                                isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
                               }`}>
-                                {citation.relevance}% relevant
-                              </span>
-                              <span className="text-xs text-gray-500">{citation.year}</span>
+                                {isSelected && <Check size={14} className="text-white" />}
+                              </div>
                             </div>
-                            <h5 className="font-medium text-gray-800 mb-1">{citation.title}</h5>
-                            <p className="text-sm text-gray-600 mb-1">{citation.author}</p>
-                            <p className="text-sm text-gray-500 mb-2">{citation.journal}</p>
-                            <p className="text-xs text-blue-600">{citation.doi}</p>
+                            <div className="flex-1">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className={`text-xs px-2 py-1 rounded ${
+                                  citation.relevance >= 80 ? 'bg-green-100 text-green-800' :
+                                  citation.relevance >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                                  'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {citation.relevance}% relevant
+                                </span>
+                                <span className="text-xs text-gray-500">{citation.year}</span>
+                              </div>
+                              <h5 className="font-medium text-gray-800 mb-1 line-clamp-2">{citation.title}</h5>
+                              <p className="text-sm text-gray-600 mb-1">{citation.author}</p>
+                              <p className="text-sm text-gray-500 mb-2">{citation.journal}</p>
+                              <p className="text-xs text-blue-600 truncate">{citation.doi}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
@@ -1289,7 +1345,7 @@ function CoWriterPage() {
                   </div>
                   <div className="flex items-center space-x-3">
                     <button 
-                      onClick={() => setCitationsFinderOpen(false)}
+                      onClick={closeAllCitationModals}
                       className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
                     >
                       Cancel
