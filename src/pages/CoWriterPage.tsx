@@ -126,29 +126,40 @@ interface EditorWrapperRef {
   replaceSelection: (text: string) => void;
   insertCitation: (citation: CitationResult) => void;
   getSelectedText: () => string;
+  clearContent: () => void;
 }
 
 interface EditorWrapperProps {
   onPaperTemplateClick: () => void;
-  onTextSelect?: (text: string) => void; // Make this optional since SuperDocEditor might not support it
+  onTextSelect?: (text: string) => void;
 }
 
 const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, ref) => {
-  // Track selection changes using a useEffect or event listener
-  // For now, we'll handle selection through the getSelectedText method
+  const editorRef = useRef<any>(null);
   
+  // Function to clear editor content
+  const clearContent = useCallback(() => {
+    // This would need to be implemented based on your SuperDocEditor API
+    // For now, we'll use a simple approach
+    if (editorRef.current) {
+      // If SuperDocEditor has a clear method, call it
+      // Otherwise, we'll need to implement this differently
+      console.log('Clear editor content');
+    }
+  }, []);
+
   useImperativeHandle(ref, () => ({
     replaceSelection: (text: string) => {
-      // For now, we'll use a simple approach to show the text
+      // For now, we'll use a simple approach to insert text
       // In a real implementation, you would integrate with your editor
       console.log('Replace selection with:', text);
-      alert(`AI Result:\n\n${text}\n\nPlease copy and paste this into your document.`);
+      // Remove the alert and just log for now
     },
     insertCitation: (citation: CitationResult) => {
       // Implement citation insertion logic
       console.log('Insert citation:', citation);
       const citationText = `[${citation.fullCitation}]`;
-      alert(`Citation generated:\n\n${citationText}\n\nPlease copy and paste this into your document.`);
+      // Remove the alert and just log for now
     },
     getSelectedText: () => {
       const selectedText = window.getSelection()?.toString().trim() || '';
@@ -157,13 +168,15 @@ const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, r
         props.onTextSelect(selectedText);
       }
       return selectedText;
-    }
+    },
+    clearContent: clearContent
   }));
 
   return (
     <SuperDocEditor 
+      ref={editorRef}
       onPaperTemplateClick={props.onPaperTemplateClick}
-      // Remove onTextSelect since SuperDocEditor doesn't support it
+      // Pass any additional props needed to ensure empty content
     />
   );
 });
@@ -194,6 +207,14 @@ function CoWriterPage() {
   const handleTextSelect = (text: string) => {
     setSelectedText(text);
   };
+
+  // Clear editor content on component mount
+  React.useEffect(() => {
+    // Clear editor content when component mounts
+    if (editorWrapperRef.current) {
+      editorWrapperRef.current.clearContent();
+    }
+  }, []);
 
   // API base URL function - same as your other components
   const getApiBaseUrl = () => {
@@ -1555,7 +1576,7 @@ function CoWriterPage() {
           <EditorWrapper 
             ref={editorWrapperRef}
             onPaperTemplateClick={() => {}}
-            onTextSelect={handleTextSelect} // Pass the handler to the wrapper
+            onTextSelect={handleTextSelect}
           />
         </div>
 
