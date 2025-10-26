@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback, useImperativeHandle, forwardRef } from 'react';
 import SuperDocEditor from '../components/SuperDocEditor';
 
 import { 
@@ -55,16 +55,129 @@ import {
   Globe,
   Clock,
   User,
-  ChevronUp
+  ChevronUp,
+  Loader2,
+  AlertCircle,
+  Check
 } from 'lucide-react';
+
+// Define TypeScript interfaces
+interface GrammarIssue {
+  type: string;
+  subtype: string;
+  severity: 'error' | 'warning' | 'suggestion';
+  text: string;
+  suggestion: string;
+  explanation: string;
+  rule: string;
+  position: {
+    start: number;
+    end: number;
+  };
+  message?: string; // Some APIs might return message instead of explanation
+}
+
+interface ToneOptimizerState {
+  original: string;
+  optimized: string;
+  open: boolean;
+}
+
+interface ParaphraserState {
+  original: string;
+  paraphrased: string;
+  open: boolean;
+}
+
+interface CitationResult {
+  fullCitation: string;
+  inTextCitation: string;
+  format: string;
+  sourceType: string;
+  verified: boolean;
+}
+
+// Extend the Window interface to include loadPaperTemplate
+declare global {
+  interface Window {
+    loadPaperTemplate?: () => void;
+  }
+}
+
+// Create a wrapper component that can expose methods
+interface EditorWrapperRef {
+  replaceSelection: (text: string) => void;
+  insertCitation: (citation: CitationResult) => void;
+  getSelectedText: () => string;
+}
+
+interface EditorWrapperProps {
+  onPaperTemplateClick: () => void;
+  onTextSelect?: (text: string) => void; // Make this optional since SuperDocEditor might not support it
+}
+
+const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, ref) => {
+  // Track selection changes using a useEffect or event listener
+  // For now, we'll handle selection through the getSelectedText method
+  
+  useImperativeHandle(ref, () => ({
+    replaceSelection: (text: string) => {
+      // For now, we'll use a simple approach to show the text
+      // In a real implementation, you would integrate with your editor
+      console.log('Replace selection with:', text);
+      alert(`AI Result:\n\n${text}\n\nPlease copy and paste this into your document.`);
+    },
+    insertCitation: (citation: CitationResult) => {
+      // Implement citation insertion logic
+      console.log('Insert citation:', citation);
+      const citationText = `[${citation.fullCitation}]`;
+      alert(`Citation generated:\n\n${citationText}\n\nPlease copy and paste this into your document.`);
+    },
+    getSelectedText: () => {
+      const selectedText = window.getSelection()?.toString().trim() || '';
+      // If we have an onTextSelect callback, call it
+      if (props.onTextSelect && selectedText) {
+        props.onTextSelect(selectedText);
+      }
+      return selectedText;
+    }
+  }));
+
+  return (
+    <SuperDocEditor 
+      onPaperTemplateClick={props.onPaperTemplateClick}
+      // Remove onTextSelect since SuperDocEditor doesn't support it
+    />
+  );
+});
+
+EditorWrapper.displayName = 'EditorWrapper';
 
 function CoWriterPage() {
   const [activeTab, setActiveTab] = useState('Home');
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Default closed on mobile
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedText, setSelectedText] = useState('');
   const [grammarChecking, setGrammarChecking] = useState(true);
-  const [toneOptimizerOpen, setToneOptimizerOpen] = useState(false);
+  const [toneOptimizerOpen, setToneOptimizerOpen] = useState<ToneOptimizerState | null>(null);
+  const [paraphraserOpen, setParaphraserOpen] = useState<ParaphraserState | null>(null);
+  const [citationsOpen, setCitationsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
+  const [activeTool, setActiveTool] = useState<string | null>(null);
+  
+  // Use our wrapper component ref instead
+  const editorWrapperRef = useRef<EditorWrapperRef>(null);
+
+  // Handle text selection - this will be called when getSelectedText is used
+  const handleTextSelect = (text: string) => {
+    setSelectedText(text);
+  };
+
+  // API base URL function - same as your other components
+  const getApiBaseUrl = () => {
+    return ''; // Use the same base URL logic as your other components
+  }
 
   const menuTabs = [
     { name: 'File', icon: FileText },
@@ -79,68 +192,606 @@ function CoWriterPage() {
   ];
 
   const homeTools = [
-    { name: 'Save', icon: Save, group: 'file' },
-    { name: 'Undo', icon: Undo, group: 'edit' },
-    { name: 'Redo', icon: Redo, group: 'edit' },
-    { name: 'Copy', icon: Copy, group: 'clipboard' },
-    { name: 'Cut', icon: Scissors, group: 'clipboard' },
-    { name: 'Paste', icon: Clipboard, group: 'clipboard' },
-    { name: 'Bold', icon: Bold, group: 'format' },
-    { name: 'Italic', icon: Italic, group: 'format' },
-    { name: 'Underline', icon: Underline, group: 'format' },
-    { name: 'Left', icon: AlignLeft, group: 'align' },
-    { name: 'Center', icon: AlignCenter, group: 'align' },
-    { name: 'Right', icon: AlignRight, group: 'align' },
-    { name: 'Bullets', icon: List, group: 'list' },
-    { name: 'Numbers', icon: ListOrdered, group: 'list' }
+    { name: 'Save', icon: Save, group: 'file', action: () => handleSave() },
+    { name: 'Undo', icon: Undo, group: 'edit', action: () => handleUndo() },
+    { name: 'Redo', icon: Redo, group: 'edit', action: () => handleRedo() },
+    { name: 'Copy', icon: Copy, group: 'clipboard', action: () => handleCopy() },
+    { name: 'Cut', icon: Scissors, group: 'clipboard', action: () => handleCut() },
+    { name: 'Paste', icon: Clipboard, group: 'clipboard', action: () => handlePaste() },
+    { name: 'Bold', icon: Bold, group: 'format', action: () => handleBold() },
+    { name: 'Italic', icon: Italic, group: 'format', action: () => handleItalic() },
+    { name: 'Underline', icon: Underline, group: 'format', action: () => handleUnderline() },
+    { name: 'Left', icon: AlignLeft, group: 'align', action: () => handleAlignLeft() },
+    { name: 'Center', icon: AlignCenter, group: 'align', action: () => handleAlignCenter() },
+    { name: 'Right', icon: AlignRight, group: 'align', action: () => handleAlignRight() },
+    { name: 'Bullets', icon: List, group: 'list', action: () => handleBullets() },
+    { name: 'Numbers', icon: ListOrdered, group: 'list', action: () => handleNumbers() }
   ];
 
   const researchBotTools = [
-    { name: 'DataSet Assistant', icon: Download, description: 'Upload, Summarize, Visualize, Cite', color: 'bg-orange-500' },
-    { name: 'Paper Templates', icon: FileText, description: 'Pre-structured sections with AI guidance', color: 'bg-blue-500', action: 'paperTemplate' },
-    { name: 'Title Generator', icon: Sparkles, description: 'AI-suggested titles and abstracts', color: 'bg-pink-500' },
-    { name: 'Tone Optimizer', icon: Edit3, description: 'Convert to formal academic style', color: 'bg-green-500' },
-    { name: 'Paraphraser', icon: RefreshCw, description: 'Plagiarism-safe rewriting', color: 'bg-purple-500' },
-    { name: 'Grammar Check', icon: CheckCircle, description: 'Academic-focused corrections', color: 'bg-red-500' },
-    { name: 'Literature Summarizer', icon: BookOpen, description: 'Extract key findings from PDFs', color: 'bg-teal-500' },
-    { name: 'Citations & Reference Manager', icon: Quote, description: 'Auto-generate APA, MLA, IEEE formats', color: 'bg-indigo-500' },
-    // { name: 'Results Helper', icon: BarChart3, description: 'Convert results to discussion', color: 'bg-cyan-500' },
-    { name: 'Track Changes', icon: Eye, description: 'Show AI edits with accept/reject', color: 'bg-violet-500' },
-    { name: 'Journal Export Format', icon: Download, description: 'Export to journal templates', color: 'bg-emerald-500' }
-        // { name: 'Collaboration', icon: Users, description: 'Real-time co-writing', color: 'bg-amber-500' }
+    { 
+      name: 'DataSet Assistant', 
+      icon: Download, 
+      description: 'Upload, Summarize, Visualize, Cite', 
+      color: 'bg-orange-500',
+      action: 'dataSetAssistant'
+    },
+    { 
+      name: 'Paper Templates', 
+      icon: FileText, 
+      description: 'Pre-structured sections with AI guidance', 
+      color: 'bg-blue-500', 
+      action: 'paperTemplate'
+    },
+    { 
+      name: 'Title Generator', 
+      icon: Sparkles, 
+      description: 'AI-suggested titles and abstracts', 
+      color: 'bg-pink-500',
+      action: 'titleGenerator'
+    },
+    { 
+      name: 'Tone Optimizer', 
+      icon: Edit3, 
+      description: 'Convert to formal academic style', 
+      color: 'bg-green-500',
+      action: 'toneOptimizer'
+    },
+    { 
+      name: 'Paraphraser', 
+      icon: RefreshCw, 
+      description: 'Plagiarism-safe rewriting', 
+      color: 'bg-purple-500',
+      action: 'paraphraser'
+    },
+    { 
+      name: 'Grammar Check', 
+      icon: CheckCircle, 
+      description: 'Academic-focused corrections', 
+      color: 'bg-red-500',
+      action: 'grammarCheck'
+    },
+    { 
+      name: 'Literature Summarizer', 
+      icon: BookOpen, 
+      description: 'Extract key findings from PDFs', 
+      color: 'bg-teal-500',
+      action: 'literatureSummarizer'
+    },
+    { 
+      name: 'Citations & Reference Manager', 
+      icon: Quote, 
+      description: 'Auto-generate APA, MLA, IEEE formats', 
+      color: 'bg-indigo-500',
+      action: 'citations'
+    },
+    { 
+      name: 'Track Changes', 
+      icon: Eye, 
+      description: 'Show AI edits with accept/reject', 
+      color: 'bg-violet-500',
+      action: 'trackChanges'
+    },
+    { 
+      name: 'Journal Export Format', 
+      icon: Download, 
+      description: 'Export to journal templates', 
+      color: 'bg-emerald-500',
+      action: 'journalExport'
+    }
   ];
 
   const premiumTools = [
-    { name: 'Research Gaps', icon: Target, description: 'Identify unstudied areas', color: 'bg-rose-500', premium: true },
-    { name: 'Research Question Generator', icon: Lightbulb, description: 'AI research questions', color: 'bg-lime-500', premium: true },
-    // { name: 'Data Interpreter', icon: Brain, description: 'Generate analysis text', color: 'bg-sky-500', premium: true },
-    { name: 'Citations Finder', icon: Quote, description: 'AI suggests relevant papers, articles, or DOIs', color: 'bg-indigo-500' },
-    { name: 'Plagiarism Check', icon: Shield, description: 'Similarity index checker', color: 'bg-slate-500', premium: true },
-    { name: 'Conference & Journal Matcher', icon: Target, description: 'finds best publication outlets', color: 'bg-slate-500', premium: true },
+    { 
+      name: 'Research Gaps', 
+      icon: Target, 
+      description: 'Identify unstudied areas', 
+      color: 'bg-rose-500', 
+      premium: true,
+      action: 'researchGaps'
+    },
+    { 
+      name: 'Research Question Generator', 
+      icon: Lightbulb, 
+      description: 'AI research questions', 
+      color: 'bg-lime-500', 
+      premium: true,
+      action: 'researchQuestions'
+    },
+    { 
+      name: 'Citations Finder', 
+      icon: Quote, 
+      description: 'AI suggests relevant papers, articles, or DOIs', 
+      color: 'bg-indigo-500',
+      action: 'citationsFinder'
+    },
+    { 
+      name: 'Plagiarism Check', 
+      icon: Shield, 
+      description: 'Similarity index checker', 
+      color: 'bg-slate-500', 
+      premium: true,
+      action: 'plagiarismCheck'
+    },
+    { 
+      name: 'Conference & Journal Matcher', 
+      icon: Target, 
+      description: 'finds best publication outlets', 
+      color: 'bg-slate-500', 
+      premium: true,
+      action: 'journalMatcher'
+    },
   ];
 
-  // Handle research bot tool clicks
-  const handleToolClick = (toolName, action) => {
-    if (action === 'paperTemplate') {
-      if ((window).loadPaperTemplate) {
-        (window).loadPaperTemplate();
+  // API Integration Functions using fetch
+  const handleToneOptimizer = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please select some text to optimize');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/co-write`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: text,
+          action: 'tone-optimize',
+          tone: 'academic'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
       }
-    } else if (toolName === 'Tone Optimizer') {
-      setToneOptimizerOpen(true);
+
+      const result = await response.json();
+      
+      if (result.result) {
+        setToneOptimizerOpen({
+          original: text,
+          optimized: result.result,
+          open: true
+        });
+      }
+    } catch (error) {
+      console.error('Tone optimization failed:', error);
+      alert('Tone optimization failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleToneOptimizerApply = (originalText, optimizedText) => {
-    console.log('Applying tone optimization:', { originalText, optimizedText });
+  const handleParaphraser = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please select some text to paraphrase');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/paraphrase`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          mode: 'academic',
+          synonymLevel: 70
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.paraphrased) {
+        setParaphraserOpen({
+          original: text,
+          paraphrased: result.paraphrased,
+          open: true
+        });
+      }
+    } catch (error) {
+      console.error('Paraphrasing failed:', error);
+      alert('Paraphrasing failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const ToolGroup = ({ title, tools, className = "" }) => (
+  const handleGrammarCheck = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please select some text to check');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/grammar-check`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          language: 'en-US',
+          includeExplanations: true
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      // Ensure issues array has proper structure
+      const issues: GrammarIssue[] = Array.isArray(result.issues) 
+        ? result.issues.map((issue: any) => ({
+            type: issue.type || 'unknown',
+            subtype: issue.subtype || '',
+            severity: issue.severity || 'suggestion',
+            text: issue.text || '',
+            suggestion: issue.suggestion || '',
+            explanation: issue.explanation || issue.message || '',
+            rule: issue.rule || '',
+            position: issue.position || { start: 0, end: 0 },
+            message: issue.message || issue.explanation || ''
+          }))
+        : [];
+      
+      setGrammarIssues(issues);
+      setActiveTool('grammar');
+    } catch (error) {
+      console.error('Grammar check failed:', error);
+      alert('Grammar check failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCitations = async (sourceInfo: string) => {
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/citations`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          source: sourceInfo,
+          format: 'apa',
+          sourceType: 'website'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result: CitationResult = await response.json();
+      
+      if (result.fullCitation && editorWrapperRef.current) {
+        editorWrapperRef.current.insertCitation(result);
+        setCitationsOpen(false);
+      }
+    } catch (error) {
+      console.error('Citation generation failed:', error);
+      alert('Citation generation failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCitationsFinder = async (query: string) => {
+    if (!query.trim()) {
+      alert('Please enter a research topic');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/citations-finder`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: query,
+          maxResults: 5,
+          field: 'general'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      setActiveTool('citations-finder');
+      // Store results in state to display
+      console.log('Citations found:', result);
+    } catch (error) {
+      console.error('Citations finder failed:', error);
+      alert('Citations search failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlagiarismCheck = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please select some text to check');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/plagiarism-check`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          language: 'en'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      setActiveTool('plagiarism');
+      // Display plagiarism results
+      console.log('Plagiarism check result:', result);
+    } catch (error) {
+      console.error('Plagiarism check failed:', error);
+      alert('Plagiarism check failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleJournalMatcher = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please provide some research content');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/journal-matcher`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          field: 'general',
+          type: 'journal'
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      setActiveTool('journal-matcher');
+      // Display journal matches
+      console.log('Journal matches:', result);
+    } catch (error) {
+      console.error('Journal matching failed:', error);
+      alert('Journal matching failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTitleGenerator = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please provide some research content');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/title-generator`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          style: 'academic',
+          count: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      setActiveTool('title-generator');
+      // Display generated titles
+      console.log('Generated titles:', result);
+    } catch (error) {
+      console.error('Title generation failed:', error);
+      alert('Title generation failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResearchQuestions = async (text: string) => {
+    if (!text.trim()) {
+      alert('Please provide some research content');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/research-questions`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: text,
+          type: 'mixed',
+          count: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      setActiveTool('research-questions');
+      // Display generated questions
+      console.log('Research questions:', result);
+    } catch (error) {
+      console.error('Research questions generation failed:', error);
+      alert('Research questions generation failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Updated Tool handler function to use the wrapper methods
+  const handleToolClick = (action: string) => {
+    const selectedText = editorWrapperRef.current?.getSelectedText() || '';
+    
+    switch (action) {
+      case 'toneOptimizer':
+        handleToneOptimizer(selectedText);
+        break;
+      case 'paraphraser':
+        handleParaphraser(selectedText);
+        break;
+      case 'grammarCheck':
+        handleGrammarCheck(selectedText);
+        break;
+      case 'citations':
+        setCitationsOpen(true);
+        break;
+      case 'citationsFinder':
+        const query = prompt('Enter research topic:');
+        if (query) handleCitationsFinder(query);
+        break;
+      case 'plagiarismCheck':
+        handlePlagiarismCheck(selectedText);
+        break;
+      case 'journalMatcher':
+        handleJournalMatcher(selectedText);
+        break;
+      case 'titleGenerator':
+        handleTitleGenerator(selectedText);
+        break;
+      case 'researchQuestions':
+        handleResearchQuestions(selectedText);
+        break;
+      case 'paperTemplate':
+        // Now TypeScript knows this property exists and is optional
+        if (window.loadPaperTemplate) {
+          window.loadPaperTemplate();
+        } else {
+          alert('Paper template functionality is not available at the moment.');
+        }
+        break;
+      case 'dataSetAssistant':
+        alert('DataSet Assistant - Coming Soon');
+        break;
+      case 'literatureSummarizer':
+        alert('Literature Summarizer - Coming Soon');
+        break;
+      case 'trackChanges':
+        alert('Track Changes - Coming Soon');
+        break;
+      case 'journalExport':
+        alert('Journal Export - Coming Soon');
+        break;
+      case 'researchGaps':
+        alert('Research Gaps - Coming Soon');
+        break;
+      default:
+        console.log(`Tool action ${action} clicked`);
+    }
+  };
+
+  // Editor action handlers (placeholder implementations)
+  function handleSave() { console.log('Save'); }
+  function handleUndo() { console.log('Undo'); }
+  function handleRedo() { console.log('Redo'); }
+  function handleCopy() { console.log('Copy'); }
+  function handleCut() { console.log('Cut'); }
+  function handlePaste() { console.log('Paste'); }
+  function handleBold() { console.log('Bold'); }
+  function handleItalic() { console.log('Italic'); }
+  function handleUnderline() { console.log('Underline'); }
+  function handleAlignLeft() { console.log('Align Left'); }
+  function handleAlignCenter() { console.log('Align Center'); }
+  function handleAlignRight() { console.log('Align Right'); }
+  function handleBullets() { console.log('Bullets'); }
+  function handleNumbers() { console.log('Numbers'); }
+
+  // Helper functions for applying changes
+  const applyToneOptimization = () => {
+    if (toneOptimizerOpen && editorWrapperRef.current) {
+      editorWrapperRef.current.replaceSelection(toneOptimizerOpen.optimized);
+      setToneOptimizerOpen(null);
+    }
+  };
+
+  const applyParaphrase = () => {
+    if (paraphraserOpen && editorWrapperRef.current) {
+      editorWrapperRef.current.replaceSelection(paraphraserOpen.paraphrased);
+      setParaphraserOpen(null);
+    }
+  };
+
+  const ToolGroup = ({ title, tools, className = "" }: { title: string; tools: any[]; className?: string }) => (
     <div className={`border-r border-gray-200 px-1 sm:px-2 last:border-r-0 ${className}`}>
       <div className="text-xs text-gray-600 mb-1 font-medium hidden sm:block">{title}</div>
       <div className="flex space-x-0.5 sm:space-x-1">
         {tools.map((tool, index) => (
           <button
             key={index}
+            onClick={tool.action}
             className="p-1.5 sm:p-2 hover:bg-gray-100 rounded transition-colors flex flex-col items-center min-w-[32px] sm:min-w-[40px]"
             title={tool.name}
           >
@@ -151,8 +802,185 @@ function CoWriterPage() {
     </div>
   );
 
+  // Helper function to get issue message
+  const getIssueMessage = (issue: GrammarIssue): string => {
+    return issue.message || issue.explanation || `Consider fixing: ${issue.text}`;
+  };
+
+  // Modal Components
+  const ToneOptimizerModal = () => {
+    if (!toneOptimizerOpen?.open) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Tone Optimizer</h3>
+            <button onClick={() => setToneOptimizerOpen(null)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Original Text</h4>
+              <div className="bg-gray-50 p-3 rounded border text-sm">
+                {toneOptimizerOpen.original}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Optimized Text</h4>
+              <div className="bg-green-50 p-3 rounded border text-sm">
+                {toneOptimizerOpen.optimized}
+              </div>
+            </div>
+          </div>
+          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+            <button 
+              onClick={() => setToneOptimizerOpen(null)}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={applyToneOptimization}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Apply Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ParaphraserModal = () => {
+    if (!paraphraserOpen?.open) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Paraphraser</h3>
+            <button onClick={() => setParaphraserOpen(null)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Original Text</h4>
+              <div className="bg-gray-50 p-3 rounded border text-sm">
+                {paraphraserOpen.original}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Paraphrased Text</h4>
+              <div className="bg-purple-50 p-3 rounded border text-sm">
+                {paraphraserOpen.paraphrased}
+              </div>
+            </div>
+          </div>
+          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+            <button 
+              onClick={() => setParaphraserOpen(null)}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={applyParaphrase}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Apply Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const CitationsModal = () => {
+    const [source, setSource] = useState('');
+    const [format, setFormat] = useState('apa');
+
+    const handleGenerateCitation = async () => {
+      if (!source.trim()) {
+        alert('Please enter source information');
+        return;
+      }
+
+      await handleCitations(source);
+    };
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-md w-full">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Generate Citation</h3>
+            <button onClick={() => setCitationsOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Source Information
+              </label>
+              <textarea
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder="Enter book title, website URL, or article details..."
+                className="w-full p-2 border border-gray-300 rounded resize-none"
+                rows={3}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Citation Format
+              </label>
+              <select
+                value={format}
+                onChange={(e) => setFormat(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded"
+              >
+                <option value="apa">APA</option>
+                <option value="mla">MLA</option>
+                <option value="chicago">Chicago</option>
+                <option value="harvard">Harvard</option>
+              </select>
+            </div>
+          </div>
+          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+            <button 
+              onClick={() => setCitationsOpen(false)}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button 
+              onClick={handleGenerateCitation}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              {loading ? <Loader2 className="animate-spin" size={16} /> : 'Generate Citation'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg flex items-center space-x-3">
+            <Loader2 className="animate-spin text-blue-600" size={24} />
+            <span className="text-gray-700">Processing...</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-blue-600 text-white px-2 sm:px-4 py-1 flex items-center justify-between text-xs sm:text-sm">
         <div className="flex items-center space-x-2 min-w-0">
@@ -265,8 +1093,9 @@ function CoWriterPage() {
                 {researchBotTools.map((tool, index) => (
                   <button
                     key={index}
-                    onClick={() => handleToolClick(tool.name, tool.action)}
-                    className="flex flex-col items-center p-2 sm:p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group min-h-[80px] sm:min-h-[100px]"
+                    onClick={() => handleToolClick(tool.action)}
+                    disabled={loading}
+                    className="flex flex-col items-center p-2 sm:p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all group min-h-[80px] sm:min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className={`${tool.color} text-white p-1.5 sm:p-2 rounded-lg mb-1 sm:mb-2 group-hover:scale-110 transition-transform`}>
                       <tool.icon size={16} className="sm:w-5 sm:h-5" />
@@ -289,7 +1118,9 @@ function CoWriterPage() {
                 {premiumTools.map((tool, index) => (
                   <button
                     key={index}
-                    className="flex flex-col items-center p-2 sm:p-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all group relative min-h-[80px] sm:min-h-[100px]"
+                    onClick={() => handleToolClick(tool.action)}
+                    disabled={loading}
+                    className="flex flex-col items-center p-2 sm:p-3 bg-gradient-to-br from-purple-50 to-blue-50 rounded-lg border border-purple-200 hover:from-purple-100 hover:to-blue-100 transition-all group relative min-h-[80px] sm:min-h-[100px] disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <div className={`${tool.color} text-white p-1.5 sm:p-2 rounded-lg mb-1 sm:mb-2 group-hover:scale-110 transition-transform relative`}>
                       <tool.icon size={16} className="sm:w-5 sm:h-5" />
@@ -322,7 +1153,11 @@ function CoWriterPage() {
       <div className="flex-1 flex flex-col sm:flex-row overflow-hidden">
         {/* Document Area */}
         <div className="flex-1 bg-gray-100 p-2 sm:p-4 lg:p-8 overflow-y-auto">
-          <SuperDocEditor onPaperTemplateClick={() => {}} />
+          <EditorWrapper 
+            ref={editorWrapperRef}
+            onPaperTemplateClick={() => {}}
+            onTextSelect={handleTextSelect} // Pass the handler to the wrapper
+          />
         </div>
 
         {/* Mobile AI Assistant Overlay */}
@@ -348,63 +1183,73 @@ function CoWriterPage() {
               {/* Mobile Content */}
               <div className="flex-1 overflow-y-auto">
                 {/* Grammar Checker Section */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-2">
-                      <CheckCircle className="text-green-600" size={18} />
-                      <span className="font-medium text-gray-900 text-sm">Grammar Checker</span>
+                {grammarIssues.length > 0 && (
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <CheckCircle className="text-green-600" size={18} />
+                        <span className="font-medium text-gray-900 text-sm">Grammar Checker</span>
+                      </div>
+                      <button 
+                        onClick={() => setGrammarChecking(!grammarChecking)}
+                        className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? 'bg-green-500' : 'bg-gray-300'}`}
+                      >
+                        <div className={`w-4 h-4 bg-white rounded-full transition-transform ${grammarChecking ? 'translate-x-5' : 'translate-x-1'} mt-1`}></div>
+                      </button>
                     </div>
-                    <button 
-                      onClick={() => setGrammarChecking(!grammarChecking)}
-                      className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? 'bg-green-500' : 'bg-gray-300'}`}
-                    >
-                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${grammarChecking ? 'translate-x-5' : 'translate-x-1'} mt-1`}></div>
-                    </button>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-3">3 suggestions available</div>
-                  <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                    <div className="flex items-start space-x-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm text-gray-800 mb-2">
-                          Consider replacing "revolutionized" with more formal academic language
-                        </p>
-                        <div className="flex space-x-2">
-                          <button className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">
-                            Accept
-                          </button>
-                          <button className="text-xs border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50">
-                            Ignore
-                          </button>
+                    <div className="text-sm text-gray-600 mb-3">{grammarIssues.length} suggestions available</div>
+                    {grammarIssues.slice(0, 2).map((issue, index) => (
+                      <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-2">
+                        <div className="flex items-start space-x-2">
+                          <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-800 mb-2">
+                              {getIssueMessage(issue)}
+                            </p>
+                            <div className="flex space-x-2">
+                              <button className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded hover:bg-blue-700">
+                                Accept
+                              </button>
+                              <button className="text-xs border border-gray-300 px-3 py-1.5 rounded hover:bg-gray-50">
+                                Ignore
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    ))}
                   </div>
-                </div>
+                )}
 
                 {/* Quick Tools */}
                 <div className="p-4">
                   <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
                   <div className="grid grid-cols-2 gap-3">
                     <button 
-                      onClick={() => setToneOptimizerOpen(true)}
+                      onClick={() => handleToolClick('toneOptimizer')}
                       className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
                     >
                       <Edit3 className="text-blue-600 mb-2" size={18} />
                       <span className="text-sm text-blue-800 block font-medium">Tone Optimizer</span>
                     </button>
                     <button 
-                      onClick={() => handleToolClick('Paraphraser')}
+                      onClick={() => handleToolClick('paraphraser')}
                       className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
                     >
                       <RefreshCw className="text-purple-600 mb-2" size={18} />
                       <span className="text-sm text-purple-800 block font-medium">Paraphraser</span>
                     </button>
-                    <button className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                    <button 
+                      onClick={() => handleToolClick('citations')}
+                      className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
+                    >
                       <Quote className="text-green-600 mb-2" size={18} />
                       <span className="text-sm text-green-800 block font-medium">Citations</span>
                     </button>
-                    <button className="p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors">
+                    <button 
+                      onClick={() => handleToolClick('citationsFinder')}
+                      className="p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                    >
                       <Search className="text-orange-600 mb-2" size={18} />
                       <span className="text-sm text-orange-800 block font-medium">Find Sources</span>
                     </button>
@@ -435,66 +1280,76 @@ function CoWriterPage() {
             </div>
 
             {/* Desktop Grammar Checker */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <CheckCircle className="text-green-600" size={20} />
-                  <span className="font-medium text-gray-900">Grammar Checker</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Real-time</span>
-                  <button 
-                    onClick={() => setGrammarChecking(!grammarChecking)}
-                    className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? 'bg-green-500' : 'bg-gray-300'}`}
-                  >
-                    <div className={`w-4 h-4 bg-white rounded-full transition-transform ${grammarChecking ? 'translate-x-5' : 'translate-x-1'} mt-1`}></div>
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-gray-600 mb-3">3 suggestions available</div>
-              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200">
-                <div className="flex items-start space-x-2">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
-                  <div className="flex-1">
-                    <p className="text-sm text-gray-800 mb-1">
-                      Consider replacing "revolutionized" with more formal academic language
-                    </p>
-                    <div className="flex space-x-2">
-                      <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">
-                        Accept
-                      </button>
-                      <button className="text-xs border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
-                        Ignore
-                      </button>
-                    </div>
+            {grammarIssues.length > 0 && (
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center space-x-2">
+                    <CheckCircle className="text-green-600" size={20} />
+                    <span className="font-medium text-gray-900">Grammar Checker</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-gray-600">Real-time</span>
+                    <button 
+                      onClick={() => setGrammarChecking(!grammarChecking)}
+                      className={`w-10 h-6 rounded-full transition-colors ${grammarChecking ? 'bg-green-500' : 'bg-gray-300'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform ${grammarChecking ? 'translate-x-5' : 'translate-x-1'} mt-1`}></div>
+                    </button>
                   </div>
                 </div>
+                <div className="text-sm text-gray-600 mb-3">{grammarIssues.length} suggestions available</div>
+                {grammarIssues.slice(0, 3).map((issue, index) => (
+                  <div key={index} className="bg-yellow-50 p-3 rounded-lg border border-yellow-200 mb-2">
+                    <div className="flex items-start space-x-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full mt-2"></div>
+                      <div className="flex-1">
+                        <p className="text-sm text-gray-800 mb-1">
+                          {getIssueMessage(issue)}
+                        </p>
+                        <div className="flex space-x-2">
+                          <button className="text-xs bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700">
+                            Accept
+                          </button>
+                          <button className="text-xs border border-gray-300 px-2 py-1 rounded hover:bg-gray-50">
+                            Ignore
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
 
             {/* Desktop Quick Tools */}
             <div className="p-4 flex-1 overflow-y-auto">
               <h3 className="font-medium text-gray-900 mb-3">Quick Tools</h3>
               <div className="grid grid-cols-2 gap-2">
                 <button 
-                  onClick={() => setToneOptimizerOpen(true)}
+                  onClick={() => handleToolClick('toneOptimizer')}
                   className="p-3 bg-blue-50 rounded-lg border border-blue-200 hover:bg-blue-100 transition-colors"
                 >
                   <Edit3 className="text-blue-600 mb-1" size={16} />
                   <span className="text-xs text-blue-800 block">Tone Optimizer</span>
                 </button>
                 <button 
-                  onClick={() => handleToolClick('Paraphraser')}
+                  onClick={() => handleToolClick('paraphraser')}
                   className="p-3 bg-purple-50 rounded-lg border border-purple-200 hover:bg-purple-100 transition-colors"
                 >
                   <RefreshCw className="text-purple-600 mb-1" size={16} />
                   <span className="text-xs text-purple-800 block">Paraphraser</span>
                 </button>
-                <button className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">
+                <button 
+                  onClick={() => handleToolClick('citations')}
+                  className="p-3 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
+                >
                   <Quote className="text-green-600 mb-1" size={16} />
                   <span className="text-xs text-green-800 block">Citations</span>
                 </button>
-                <button className="p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors">
+                <button 
+                  onClick={() => handleToolClick('citationsFinder')}
+                  className="p-3 bg-orange-50 rounded-lg border border-orange-200 hover:bg-orange-100 transition-colors"
+                >
                   <Search className="text-orange-600 mb-1" size={16} />
                   <span className="text-xs text-orange-800 block">Find Sources</span>
                 </button>
@@ -513,6 +1368,11 @@ function CoWriterPage() {
           </button>
         )}
       </div>
+
+      {/* Modals */}
+      <ToneOptimizerModal />
+      <ParaphraserModal />
+      <CitationsModal />
     </div>
   );
 }
