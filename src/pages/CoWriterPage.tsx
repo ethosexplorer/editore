@@ -58,7 +58,11 @@ import {
   ChevronUp,
   Loader2,
   AlertCircle,
-  Check
+  Check,
+  Upload,
+  Database,
+  TrendingUp,
+  MapPin
 } from 'lucide-react';
 
 // Define TypeScript interfaces
@@ -112,6 +116,48 @@ interface CitationFinderResult {
   field: string;
   totalFound: number;
   processingTime: number;
+}
+
+// New interfaces for premium tools
+interface ResearchGap {
+  id: string;
+  topic: string;
+  description: string;
+  potentialImpact: 'high' | 'medium' | 'low';
+  methodology: string[];
+  keywords: string[];
+}
+
+interface ResearchQuestion {
+  id: string;
+  question: string;
+  type: 'descriptive' | 'comparative' | 'causal' | 'exploratory';
+  complexity: 'basic' | 'intermediate' | 'advanced';
+  methodology: string[];
+}
+
+interface JournalConference {
+  id: string;
+  name: string;
+  type: 'journal' | 'conference';
+  impactFactor?: number;
+  acceptanceRate: string;
+  focusAreas: string[];
+  publisher: string;
+  matchScore: number;
+  deadline?: string;
+  website: string;
+}
+
+interface DatasetInfo {
+  id: string;
+  name: string;
+  description: string;
+  size: string;
+  format: string;
+  source: string;
+  variables: string[];
+  uploadDate: string;
 }
 
 // Extend the Window interface to include loadPaperTemplate
@@ -200,6 +246,17 @@ function CoWriterPage() {
   const [loading, setLoading] = useState(false);
   const [grammarIssues, setGrammarIssues] = useState<GrammarIssue[]>([]);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+  
+  // New state variables for premium tools
+  const [dataAssistantOpen, setDataAssistantOpen] = useState(false);
+  const [researchGapsOpen, setResearchGapsOpen] = useState(false);
+  const [researchQuestionsOpen, setResearchQuestionsOpen] = useState(false);
+  const [journalMatcherOpen, setJournalMatcherOpen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [researchGaps, setResearchGaps] = useState<ResearchGap[]>([]);
+  const [researchQuestions, setResearchQuestions] = useState<ResearchQuestion[]>([]);
+  const [journalMatches, setJournalMatches] = useState<JournalConference[]>([]);
+  const [researchTopic, setResearchTopic] = useState('');
   
   // Use our wrapper component ref instead
   const editorWrapperRef = useRef<EditorWrapperRef>(null);
@@ -363,7 +420,7 @@ function CoWriterPage() {
     },
     { 
       name: 'Conference & Journal Matcher', 
-      icon: Target, 
+      icon: MapPin, 
       description: 'Finds best publication outlets', 
       color: 'bg-cyan-500', 
       premium: true,
@@ -742,6 +799,239 @@ function CoWriterPage() {
     }
   };
 
+  // NEW: Data Assistant Functions
+  const handleDataAssistant = async () => {
+    setDataAssistantOpen(true);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files) {
+      setUploadedFiles(Array.from(files));
+      console.log('Files uploaded:', files);
+    }
+  };
+
+  const handleDatasetAnalysis = async (file: File) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const apiUrl = `${getApiBaseUrl()}/api/analyze-dataset`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Dataset analysis complete:', result);
+      
+      if (editorWrapperRef.current) {
+        const analysisText = `Dataset Analysis for ${file.name}:\n\n` +
+          `• Variables: ${result.variables?.join(', ') || 'N/A'}\n` +
+          `• Sample Size: ${result.sampleSize || 'N/A'}\n` +
+          `• Data Types: ${result.dataTypes?.join(', ') || 'N/A'}\n` +
+          `• Summary Statistics: ${result.summary || 'Available'}`;
+        
+        editorWrapperRef.current.replaceSelection(analysisText);
+      }
+    } catch (error) {
+      console.error('Dataset analysis failed:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Research Gaps Functions
+  const handleResearchGaps = async () => {
+    setResearchGapsOpen(true);
+  };
+
+  const analyzeResearchGaps = async (topic: string) => {
+    if (!topic.trim()) {
+      console.log('Please enter a research topic');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/research-gaps`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: topic,
+          maxGaps: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setResearchGaps(result.gaps || []);
+      console.log('Research gaps analysis complete');
+    } catch (error) {
+      console.error('Research gaps analysis failed:', error);
+      // Mock data for demonstration
+      const mockGaps: ResearchGap[] = [
+        {
+          id: '1',
+          topic: 'AI in Healthcare',
+          description: 'Limited research on ethical implications of AI diagnostics in rural healthcare settings',
+          potentialImpact: 'high',
+          methodology: ['Mixed Methods', 'Case Studies', 'Surveys'],
+          keywords: ['AI Ethics', 'Rural Healthcare', 'Diagnostic Algorithms']
+        },
+        {
+          id: '2',
+          topic: 'Machine Learning',
+          description: 'Gap in interpretability of deep learning models for clinical decision support',
+          potentialImpact: 'medium',
+          methodology: ['Experimental Research', 'Model Analysis', 'Clinical Trials'],
+          keywords: ['Interpretable AI', 'Clinical Decision Support', 'Model Transparency']
+        }
+      ];
+      setResearchGaps(mockGaps);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Research Questions Functions
+  const handleResearchQuestions = async () => {
+    setResearchQuestionsOpen(true);
+  };
+
+  const generateResearchQuestions = async (topic: string) => {
+    if (!topic.trim()) {
+      console.log('Please enter a research topic');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/research-questions`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: topic,
+          count: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setResearchQuestions(result.questions || []);
+      console.log('Research questions generated');
+    } catch (error) {
+      console.error('Research questions generation failed:', error);
+      // Mock data for demonstration
+      const mockQuestions: ResearchQuestion[] = [
+        {
+          id: '1',
+          question: 'How does the implementation of AI-powered diagnostic tools affect patient outcomes in primary care settings?',
+          type: 'causal',
+          complexity: 'advanced',
+          methodology: ['Randomized Controlled Trials', 'Longitudinal Studies']
+        },
+        {
+          id: '2',
+          question: 'What are the key factors influencing healthcare professionals\' adoption of AI technologies?',
+          type: 'exploratory',
+          complexity: 'intermediate',
+          methodology: ['Surveys', 'Interviews', 'Thematic Analysis']
+        }
+      ];
+      setResearchQuestions(mockQuestions);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // NEW: Journal Matcher Functions
+  const handleJournalMatcher = async () => {
+    setJournalMatcherOpen(true);
+  };
+
+  const findJournalMatches = async (topic: string, field: string = 'general') => {
+    if (!topic.trim()) {
+      console.log('Please enter a research topic');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const apiUrl = `${getApiBaseUrl()}/api/journal-matcher`;
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          topic: topic,
+          field: field,
+          maxResults: 5
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      setJournalMatches(result.matches || []);
+      console.log('Journal matches found');
+    } catch (error) {
+      console.error('Journal matching failed:', error);
+      // Mock data for demonstration
+      const mockMatches: JournalConference[] = [
+        {
+          id: '1',
+          name: 'Nature Medicine',
+          type: 'journal',
+          impactFactor: 87.241,
+          acceptanceRate: '8%',
+          focusAreas: ['Clinical Medicine', 'Biomedical Research', 'Healthcare Innovation'],
+          publisher: 'Nature Publishing Group',
+          matchScore: 95,
+          website: 'https://www.nature.com/nm/'
+        },
+        {
+          id: '2',
+          name: 'Journal of Medical Internet Research',
+          type: 'journal',
+          impactFactor: 7.076,
+          acceptanceRate: '25%',
+          focusAreas: ['Digital Health', 'Telemedicine', 'Health Informatics'],
+          publisher: 'JMIR Publications',
+          matchScore: 88,
+          website: 'https://www.jmir.org/'
+        }
+      ];
+      setJournalMatches(mockMatches);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Handle citation selection
   const handleCitationSelect = (citation: CitationItem) => {
     setSelectedCitations(prev => {
@@ -897,13 +1187,10 @@ function CoWriterPage() {
         handleAIDetection(selectedText);
         break;
       case 'journalMatcher':
-        console.log('Journal Matcher clicked');
-        break;
-      case 'titleGenerator':
-        console.log('Title Generator clicked');
+        handleJournalMatcher();
         break;
       case 'researchQuestions':
-        console.log('Research Questions clicked');
+        handleResearchQuestions();
         break;
       case 'paperTemplate':
         if (window.loadPaperTemplate) {
@@ -913,7 +1200,10 @@ function CoWriterPage() {
         }
         break;
       case 'dataSetAssistant':
-        console.log('DataSet Assistant clicked');
+        handleDataAssistant();
+        break;
+      case 'researchGaps':
+        handleResearchGaps();
         break;
       case 'literatureSummarizer':
         console.log('Literature Summarizer clicked');
@@ -923,9 +1213,6 @@ function CoWriterPage() {
         break;
       case 'journalExport':
         console.log('Journal Export clicked');
-        break;
-      case 'researchGaps':
-        console.log('Research Gaps clicked');
         break;
       default:
         console.log(`Tool action ${action} clicked`);
@@ -960,6 +1247,45 @@ function CoWriterPage() {
     if (paraphraserOpen && editorWrapperRef.current) {
       editorWrapperRef.current.replaceSelection(paraphraserOpen.paraphrased);
       setParaphraserOpen(null);
+    }
+  };
+
+  // Helper function to insert research gap into document
+  const insertResearchGap = (gap: ResearchGap) => {
+    if (editorWrapperRef.current) {
+      const gapText = `Research Gap: ${gap.topic}\n\n` +
+        `Description: ${gap.description}\n\n` +
+        `Potential Impact: ${gap.potentialImpact.toUpperCase()}\n` +
+        `Suggested Methodologies: ${gap.methodology.join(', ')}\n` +
+        `Keywords: ${gap.keywords.join(', ')}\n\n`;
+      
+      editorWrapperRef.current.replaceSelection(gapText);
+    }
+  };
+
+  // Helper function to insert research question into document
+  const insertResearchQuestion = (question: ResearchQuestion) => {
+    if (editorWrapperRef.current) {
+      const questionText = `Research Question (${question.type}, ${question.complexity}):\n` +
+        `${question.question}\n\n` +
+        `Suggested Methodologies: ${question.methodology.join(', ')}\n\n`;
+      
+      editorWrapperRef.current.replaceSelection(questionText);
+    }
+  };
+
+  // Helper function to insert journal match into document
+  const insertJournalMatch = (journal: JournalConference) => {
+    if (editorWrapperRef.current) {
+      const journalText = `Recommended ${journal.type.toUpperCase()}: ${journal.name}\n\n` +
+        `Match Score: ${journal.matchScore}%\n` +
+        `Impact Factor: ${journal.impactFactor || 'N/A'}\n` +
+        `Acceptance Rate: ${journal.acceptanceRate}\n` +
+        `Focus Areas: ${journal.focusAreas.join(', ')}\n` +
+        `Publisher: ${journal.publisher}\n` +
+        `Website: ${journal.website}\n\n`;
+      
+      editorWrapperRef.current.replaceSelection(journalText);
     }
   };
 
@@ -1382,6 +1708,424 @@ function CoWriterPage() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Data Assistant Modal
+  const DataAssistantModal = () => {
+    if (!dataAssistantOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">DataSet Assistant</h3>
+            <button onClick={() => setDataAssistantOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-6">
+              {/* File Upload Section */}
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                <Upload className="mx-auto text-gray-400 mb-4" size={48} />
+                <h4 className="font-medium text-gray-700 mb-2">Upload Your Dataset</h4>
+                <p className="text-sm text-gray-500 mb-4">
+                  Supported formats: CSV, Excel, JSON, SPSS (.sav)
+                </p>
+                <input
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="dataset-upload"
+                  accept=".csv,.xlsx,.xls,.json,.sav"
+                />
+                <label
+                  htmlFor="dataset-upload"
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer"
+                >
+                  <Upload size={16} className="mr-2" />
+                  Choose Files
+                </label>
+              </div>
+
+              {/* Uploaded Files List */}
+              {uploadedFiles.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3">Uploaded Files</h4>
+                  <div className="space-y-2">
+                    {uploadedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <Database className="text-blue-600" size={20} />
+                          <div>
+                            <p className="font-medium text-sm">{file.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => handleDatasetAnalysis(file)}
+                          disabled={loading}
+                          className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {loading ? 'Analyzing...' : 'Analyze'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Data Analysis Features */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <BarChart3 className="text-blue-600 mb-2" size={24} />
+                  <h5 className="font-medium text-blue-800">Statistical Analysis</h5>
+                  <p className="text-sm text-blue-600 mt-1">
+                    Generate descriptive statistics and correlation analysis
+                  </p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <TrendingUp className="text-green-600 mb-2" size={24} />
+                  <h5 className="font-medium text-green-800">Visualization</h5>
+                  <p className="text-sm text-green-600 mt-1">
+                    Create charts and graphs for data exploration
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-4 border-t border-gray-200 flex justify-end space-x-2">
+            <button 
+              onClick={() => setDataAssistantOpen(false)}
+              className="px-4 py-2 border border-gray-300 rounded hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Research Gaps Modal
+  const ResearchGapsModal = () => {
+    if (!researchGapsOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Research Gaps Analyzer</h3>
+            <button onClick={() => setResearchGapsOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Input Section */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Research Topic
+                  </label>
+                  <input
+                    type="text"
+                    value={researchTopic}
+                    onChange={(e) => setResearchTopic(e.target.value)}
+                    placeholder="Enter your research topic or field..."
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <button 
+                  onClick={() => analyzeResearchGaps(researchTopic)}
+                  disabled={loading || !researchTopic.trim()}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {loading && <Loader2 className="animate-spin" size={16} />}
+                  <span>Analyze Research Gaps</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Section */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {researchGaps.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Identified Research Gaps</h4>
+                  {researchGaps.map((gap, index) => (
+                    <div key={gap.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <h5 className="font-medium text-gray-800">{gap.topic}</h5>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          gap.potentialImpact === 'high' ? 'bg-red-100 text-red-800' :
+                          gap.potentialImpact === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {gap.potentialImpact.toUpperCase()} Impact
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">{gap.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {gap.keywords.map((keyword, idx) => (
+                          <span key={idx} className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-gray-500">
+                          Methods: {gap.methodology.join(', ')}
+                        </div>
+                        <button
+                          onClick={() => insertResearchGap(gap)}
+                          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                        >
+                          Insert to Document
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Target className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p>Enter a research topic to identify potential research gaps</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Research Questions Modal
+  const ResearchQuestionsModal = () => {
+    if (!researchQuestionsOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Research Question Generator</h3>
+            <button onClick={() => setResearchQuestionsOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Input Section */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Research Topic
+                  </label>
+                  <input
+                    type="text"
+                    value={researchTopic}
+                    onChange={(e) => setResearchTopic(e.target.value)}
+                    placeholder="Enter your research topic or field..."
+                    className="w-full p-3 border border-gray-300 rounded-lg"
+                  />
+                </div>
+                <button 
+                  onClick={() => generateResearchQuestions(researchTopic)}
+                  disabled={loading || !researchTopic.trim()}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {loading && <Loader2 className="animate-spin" size={16} />}
+                  <span>Generate Research Questions</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Section */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {researchQuestions.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Generated Research Questions</h4>
+                  {researchQuestions.map((question, index) => (
+                    <div key={question.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <h5 className="font-medium text-gray-800 flex-1">{question.question}</h5>
+                        <div className="flex space-x-2 ml-4">
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            question.type === 'causal' ? 'bg-purple-100 text-purple-800' :
+                            question.type === 'comparative' ? 'bg-blue-100 text-blue-800' :
+                            question.type === 'exploratory' ? 'bg-green-100 text-green-800' :
+                            'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {question.type}
+                          </span>
+                          <span className={`text-xs px-2 py-1 rounded ${
+                            question.complexity === 'advanced' ? 'bg-red-100 text-red-800' :
+                            question.complexity === 'intermediate' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {question.complexity}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mb-3">
+                        Suggested Methods: {question.methodology.join(', ')}
+                      </div>
+                      <button
+                        onClick={() => insertResearchQuestion(question)}
+                        className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        Insert to Document
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <Lightbulb className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p>Enter a research topic to generate relevant research questions</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // NEW: Journal Matcher Modal
+  const JournalMatcherModal = () => {
+    const [field, setField] = useState('general');
+
+    if (!journalMatcherOpen) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Conference & Journal Matcher</h3>
+            <button onClick={() => setJournalMatcherOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={20} />
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-hidden flex flex-col">
+            {/* Input Section */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Research Topic
+                    </label>
+                    <input
+                      type="text"
+                      value={researchTopic}
+                      onChange={(e) => setResearchTopic(e.target.value)}
+                      placeholder="Enter your research topic..."
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Field
+                    </label>
+                    <select
+                      value={field}
+                      onChange={(e) => setField(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg"
+                    >
+                      <option value="general">General</option>
+                      <option value="computer">Computer Science</option>
+                      <option value="medicine">Medicine</option>
+                      <option value="psychology">Psychology</option>
+                      <option value="education">Education</option>
+                      <option value="engineering">Engineering</option>
+                      <option value="business">Business</option>
+                    </select>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => findJournalMatches(researchTopic, field)}
+                  disabled={loading || !researchTopic.trim()}
+                  className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {loading && <Loader2 className="animate-spin" size={16} />}
+                  <span>Find Publication Outlets</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Results Section */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {journalMatches.length > 0 ? (
+                <div className="space-y-4">
+                  <h4 className="font-medium text-gray-700">Recommended Publication Outlets</h4>
+                  {journalMatches.map((journal, index) => (
+                    <div key={journal.id} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h5 className="font-medium text-gray-800">{journal.name}</h5>
+                          <p className="text-sm text-gray-600">{journal.publisher} • {journal.type.toUpperCase()}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg font-bold ${
+                            journal.matchScore >= 90 ? 'text-green-600' :
+                            journal.matchScore >= 80 ? 'text-yellow-600' :
+                            'text-blue-600'
+                          }`}>
+                            {journal.matchScore}%
+                          </div>
+                          <div className="text-xs text-gray-500">Match Score</div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3 text-sm">
+                        <div>
+                          <span className="text-gray-500">Impact Factor:</span>
+                          <div className="font-medium">{journal.impactFactor || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Acceptance Rate:</span>
+                          <div className="font-medium">{journal.acceptanceRate}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Focus Areas:</span>
+                          <div className="font-medium">{journal.focusAreas.slice(0, 2).join(', ')}</div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Website:</span>
+                          <a href={journal.website} target="_blank" rel="noopener noreferrer" className="font-medium text-blue-600 hover:underline">
+                            Visit
+                          </a>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => insertJournalMatch(journal)}
+                        className="w-full px-3 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                      >
+                        Insert to Document
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-8">
+                  <MapPin className="mx-auto text-gray-400 mb-4" size={48} />
+                  <p>Enter your research topic to find the best publication outlets</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -1820,6 +2564,10 @@ function CoWriterPage() {
       {paraphraserOpen?.open && <ParaphraserModal />}
       {citationsOpen && <CitationsModal />}
       {citationsFinderOpen && <CitationsFinderModal />}
+      {dataAssistantOpen && <DataAssistantModal />}
+      {researchGapsOpen && <ResearchGapsModal />}
+      {researchQuestionsOpen && <ResearchQuestionsModal />}
+      {journalMatcherOpen && <JournalMatcherModal />}
     </div>
   );
 }
