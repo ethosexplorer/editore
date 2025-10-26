@@ -153,13 +153,11 @@ const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, r
       // For now, we'll use a simple approach to insert text
       // In a real implementation, you would integrate with your editor
       console.log('Replace selection with:', text);
-      // Remove the alert and just log for now
     },
     insertCitation: (citation: CitationResult) => {
       // Implement citation insertion logic
       console.log('Insert citation:', citation);
       const citationText = `[${citation.fullCitation}]`;
-      // Remove the alert and just log for now
     },
     getSelectedText: () => {
       const selectedText = window.getSelection()?.toString().trim() || '';
@@ -172,8 +170,11 @@ const EditorWrapper = forwardRef<EditorWrapperRef, EditorWrapperProps>((props, r
     clearContent: clearContent
   }));
 
+  // Cast SuperDocEditor to any component type so we can forward a ref safely
+  const AnySuperDocEditor = SuperDocEditor as unknown as React.ComponentType<any>;
+
   return (
-    <SuperDocEditor 
+    <AnySuperDocEditor
       ref={editorRef}
       onPaperTemplateClick={props.onPaperTemplateClick}
       // Pass any additional props needed to ensure empty content
@@ -370,10 +371,10 @@ function CoWriterPage() {
     },
   ];
 
-  // API Integration Functions using fetch - UPDATED FOR WORKING-SERVER.CJS
+  // API Integration Functions using fetch - UPDATED TO REMOVE ALERTS
   const handleToneOptimizer = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to optimize');
+      console.log('Please select some text to optimize');
       return;
     }
 
@@ -409,7 +410,6 @@ function CoWriterPage() {
       }
     } catch (error) {
       console.error('Tone optimization failed:', error);
-      alert('Tone optimization failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -417,7 +417,7 @@ function CoWriterPage() {
 
   const handleParaphraser = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to paraphrase');
+      console.log('Please select some text to paraphrase');
       return;
     }
 
@@ -453,7 +453,6 @@ function CoWriterPage() {
       }
     } catch (error) {
       console.error('Paraphrasing failed:', error);
-      alert('Paraphrasing failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -461,7 +460,7 @@ function CoWriterPage() {
 
   const handleGrammarCheck = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to check');
+      console.log('Please select some text to check');
       return;
     }
 
@@ -506,7 +505,6 @@ function CoWriterPage() {
       setActiveTool('grammar');
     } catch (error) {
       console.error('Grammar check failed:', error);
-      alert('Grammar check failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -541,7 +539,6 @@ function CoWriterPage() {
       }
     } catch (error) {
       console.error('Citation generation failed:', error);
-      alert('Citation generation failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -549,7 +546,7 @@ function CoWriterPage() {
 
   const handleCitationsFinder = async (query: string, maxResults: number = 5, field: string = 'general') => {
     if (!query.trim()) {
-      alert('Please enter a research topic');
+      console.log('Please enter a research topic');
       return;
     }
 
@@ -581,7 +578,6 @@ function CoWriterPage() {
       setActiveTool('citations-finder');
     } catch (error) {
       console.error('Citations finder failed:', error);
-      alert('Citations search failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -589,7 +585,7 @@ function CoWriterPage() {
 
   const handlePlagiarismCheck = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to check');
+      console.log('Please select some text to check');
       return;
     }
 
@@ -615,11 +611,14 @@ function CoWriterPage() {
       const result = await response.json();
       
       setActiveTool('plagiarism');
-      // Display plagiarism results
-      alert(`Plagiarism Check Complete:\nOverall Score: ${result.overallScore}%\nUnique Content: ${result.uniqueContent}%\nProcessing Time: ${result.processingTime}s`);
+      // Log plagiarism results instead of showing alert
+      console.log('Plagiarism Check Complete:', {
+        overallScore: result.overallScore,
+        uniqueContent: result.uniqueContent,
+        processingTime: result.processingTime
+      });
     } catch (error) {
       console.error('Plagiarism check failed:', error);
-      alert('Plagiarism check failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -627,7 +626,7 @@ function CoWriterPage() {
 
   const handleHumanizeText = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to humanize');
+      console.log('Please select some text to humanize');
       return;
     }
 
@@ -659,7 +658,6 @@ function CoWriterPage() {
       }
     } catch (error) {
       console.error('Text humanization failed:', error);
-      alert('Text humanization failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -667,7 +665,7 @@ function CoWriterPage() {
 
   const handleSummarize = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to summarize');
+      console.log('Please select some text to summarize');
       return;
     }
 
@@ -699,7 +697,6 @@ function CoWriterPage() {
       }
     } catch (error) {
       console.error('Summarization failed:', error);
-      alert('Summarization failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -707,7 +704,7 @@ function CoWriterPage() {
 
   const handleAIDetection = async (text: string) => {
     if (!text.trim()) {
-      alert('Please select some text to analyze');
+      console.log('Please select some text to analyze');
       return;
     }
 
@@ -732,11 +729,14 @@ function CoWriterPage() {
 
       const result = await response.json();
       
-      // Display AI detection results
-      alert(`AI Detection Results:\nAI Probability: ${result.aiProbability}%\nHuman Probability: ${result.humanProbability}%\nConfidence: ${result.confidence}%`);
+      // Log AI detection results instead of showing alert
+      console.log('AI Detection Results:', {
+        aiProbability: result.aiProbability,
+        humanProbability: result.humanProbability,
+        confidence: result.confidence
+      });
     } catch (error) {
       console.error('AI detection failed:', error);
-      alert('AI detection failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -757,7 +757,7 @@ function CoWriterPage() {
   // Generate citations for selected items and close all modals
   const handleGenerateSelectedCitations = async () => {
     if (selectedCitations.length === 0) {
-      alert('Please select at least one citation to generate');
+      console.log('Please select at least one citation to generate');
       return;
     }
 
@@ -802,11 +802,10 @@ function CoWriterPage() {
       setCitationResults(null);
       setSelectedCitations([]);
       
-      alert(`Successfully generated ${generatedCitations.length} citations in ${citationFormat.toUpperCase()} format!`);
+      console.log(`Successfully generated ${generatedCitations.length} citations in ${citationFormat.toUpperCase()} format!`);
       
     } catch (error) {
       console.error('Citation generation failed:', error);
-      alert('Failed to generate citations. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -848,11 +847,10 @@ function CoWriterPage() {
       setCitationResults(null);
       setSelectedCitations([]);
       
-      alert(`Citation generated and inserted in ${citationFormat.toUpperCase()} format!`);
+      console.log(`Citation generated and inserted in ${citationFormat.toUpperCase()} format!`);
       
     } catch (error) {
       console.error('Citation generation failed:', error);
-      alert('Failed to generate citation. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -866,7 +864,7 @@ function CoWriterPage() {
     setSelectedCitations([]);
   };
 
-  // Updated Tool handler function to use the wrapper methods
+  // Updated Tool handler function to use the wrapper methods without alerts
   const handleToolClick = (action: string) => {
     const selectedText = editorWrapperRef.current?.getSelectedText() || '';
     
@@ -899,35 +897,35 @@ function CoWriterPage() {
         handleAIDetection(selectedText);
         break;
       case 'journalMatcher':
-        alert('Journal Matcher - Custom implementation needed');
+        console.log('Journal Matcher clicked');
         break;
       case 'titleGenerator':
-        alert('Title Generator - Custom implementation needed');
+        console.log('Title Generator clicked');
         break;
       case 'researchQuestions':
-        alert('Research Questions - Custom implementation needed');
+        console.log('Research Questions clicked');
         break;
       case 'paperTemplate':
         if (window.loadPaperTemplate) {
           window.loadPaperTemplate();
         } else {
-          alert('Paper template functionality is not available at the moment.');
+          console.log('Paper template functionality is not available at the moment.');
         }
         break;
       case 'dataSetAssistant':
-        alert('DataSet Assistant - Coming Soon');
+        console.log('DataSet Assistant clicked');
         break;
       case 'literatureSummarizer':
-        alert('Literature Summarizer - Coming Soon');
+        console.log('Literature Summarizer clicked');
         break;
       case 'trackChanges':
-        alert('Track Changes - Coming Soon');
+        console.log('Track Changes clicked');
         break;
       case 'journalExport':
-        alert('Journal Export - Coming Soon');
+        console.log('Journal Export clicked');
         break;
       case 'researchGaps':
-        alert('Research Gaps - Coming Soon');
+        console.log('Research Gaps clicked');
         break;
       default:
         console.log(`Tool action ${action} clicked`);
@@ -1086,7 +1084,7 @@ function CoWriterPage() {
 
     const handleGenerateCitation = async () => {
       if (!source.trim()) {
-        alert('Please enter source information');
+        console.log('Please enter source information');
         return;
       }
 
@@ -1175,7 +1173,7 @@ function CoWriterPage() {
 
     const handleSearchCitations = async () => {
       if (!query.trim()) {
-        alert('Please enter a research topic');
+        console.log('Please enter a research topic');
         return;
       }
 
